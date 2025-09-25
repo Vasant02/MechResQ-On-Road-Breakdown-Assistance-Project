@@ -1,0 +1,253 @@
+{% extends 'base_mechanic.html' %}
+{% load static %}
+
+{% block title %}Service History - Mechanic Dashboard{% endblock %}
+
+{% block page_css %}
+<style>
+    .history-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .history-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    .history-filters {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .service-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .service-table th,
+    .service-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .service-table th {
+        background-color: #f8fafc;
+        font-weight: 500;
+        color: #64748b;
+    }
+
+    .service-table tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .status-pending {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-accepted {
+        background-color: #e0f2fe;
+        color: #075985;
+    }
+
+    .status-in-progress {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-completed {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .status-cancelled {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .vehicle-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vehicle-icon {
+        width: 24px;
+        height: 24px;
+        background-color: #f1f5f9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-view {
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        text-decoration: none;
+        color: #3b82f6;
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        transition: all 0.2s;
+    }
+
+    .btn-view:hover {
+        background-color: #dbeafe;
+        border-color: #93c5fd;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #64748b;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #e2e8f0;
+    }
+
+    @media (max-width: 768px) {
+        .history-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .service-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="history-container">
+    <div class="history-header">
+        <h1 class="history-title">Service History</h1>
+        <div class="history-filters">
+            <select class="form-select" id="statusFilter">
+                <option value="all">All Status</option>
+                <option value="PENDING">Pending</option>
+                <option value="ACCEPTED">Accepted</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+            </select>
+        </div>
+    </div>
+
+    {% if service_requests %}
+    <div class="table-responsive">
+        <table class="service-table">
+            <thead>
+                <tr>
+                    <th>Service ID</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Vehicle</th>
+                    <th>Issue</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in service_requests %}
+                <tr>
+                    <td>#{{ request.id }}</td>
+                    <td>{{ request.created_at|date:"M d, Y" }}</td>
+                    <td>{{ request.user.get_full_name }}</td>
+                    <td>
+                        <div class="vehicle-info">
+                            <span class="vehicle-icon">
+                                {% if request.vehicle_type == 'car' %}🚗
+                                {% elif request.vehicle_type == 'motorcycle' %}🏍
+                                {% else %}🚛{% endif %}
+                            </span>
+                            {% if request.vehicle %}
+                                {{ request.vehicle.name }} ({{ request.vehicle.license_plate }})
+                            {% else %}
+                                {{ request.vehicle_type|title }}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ request.issue_description|truncatechars:50 }}</td>
+                    <td>
+                        <span class="status-badge status-{{ request.status|lower }}">
+                            {{ request.status|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'core:service_request_detail' request.id %}" class="btn-view">
+                                View Details
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <h3>No Service History</h3>
+        <p>You haven't completed any service requests yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const tableRows = document.querySelectorAll('.service-table tbody tr');
+
+    statusFilter.addEventListener('change', function() {
+        const selectedStatus = this.value;
+        
+        tableRows.forEach(row => {
+            const statusCell = row.querySelector('.status-badge');
+            const status = statusCell.textContent.trim().toUpperCase();
+            
+            if (selectedStatus === 'all' || status === selectedStatus) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,124 @@
+/* Shared Component Styles */
+.page-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
+    min-height: 100vh;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+}
+
+.notification-card {
+    border: none;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.notification-card.unread {
+    border-left: 4px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.notification-card:hover {
+    transform: translateX(5px);
+}
+
+.notification-title {
+    color: #1e293b;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.notification-time {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.btn-mark-read {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.btn-mark-read:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+/* Review Components */
+.review-card {
+    border: none;
+    border-radius: 15px;
+}
+
+.star-rating .fa-star {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.star-rating .fa-star:hover {
+    transform: scale(1.2);
+}
+
+.animate-star {
+    animation: star-pulse 0.3s ease;
+}
+
+@keyframes star-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.rating-text {
+    font-size: 1rem;
+    color: #64748b;
+    transition: all 0.3s ease;
+}
+
+.hover-scale {
+    transition: all 0.3s ease;
+}
+
+.hover-scale:hover {
+    transform: scale(1.05);
+}
+
+.review-form textarea {
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.review-form textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.alert {
+    border-radius: 12px;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.alert-success {
+    border-left: 4px solid #10b981;
+}
+
+.alert-danger {
+    border-left: 4px solid #ef4444;
+}

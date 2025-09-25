@@ -1,0 +1,114 @@
+{% extends 'base_mechanic.html' %}
+{% load static %}
+
+{% block title %}Payment - Service #{{ service_request.id }}{% endblock %}
+
+{% block main_content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Service Payment</h4>
+                    <span class="badge bg-light text-primary">{{ payment.get_payment_status_display }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Service Details</h5>
+                            <p class="mb-1"><strong>Service ID:</strong> #{{ service_request.id }}</p>
+                            <p class="mb-1"><strong>Customer:</strong> {{ service_request.user.get_full_name }}</p>
+                            <p class="mb-1"><strong>Vehicle:</strong> {{ service_request.vehicle.name }}</p>
+                            <p class="mb-1"><strong>Issue:</strong> {{ service_request.issue_description|truncatechars:100 }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Payment Summary</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td>Service Charge:</td>
+                                        <td class="text-end">₹{{ payment.service_charge }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tax (18% GST):</td>
+                                        <td class="text-end">₹{{ payment.tax }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Platform Fee:</td>
+                                        <td class="text-end">₹{{ payment.platform_fee }}</td>
+                                    </tr>
+                                    <tr class="fw-bold">
+                                        <td>Total Amount:</td>
+                                        <td class="text-end">₹{{ payment.total_amount }}</td>
+                                    </tr>
+                                    <tr class="table-info">
+                                        <td>Your Share:</td>
+                                        <td class="text-end">₹{{ payment.mechanic_share }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if payment.payment_method %}
+                    <div class="payment-details mb-4">
+                        <h5>Payment Details</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Payment Method:</strong> {{ payment.get_payment_method_display }}</p>
+                                {% if payment.transaction_id %}
+                                <p class="mb-1"><strong>Transaction ID:</strong> {{ payment.transaction_id }}</p>
+                                {% endif %}
+                                {% if payment.paid_at %}
+                                <p class="mb-1"><strong>Paid on:</strong> {{ payment.paid_at|date:"M d, Y H:i" }}</p>
+                                {% endif %}
+                            </div>
+                            {% if payment.payment_proof %}
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Payment Proof:</strong></p>
+                                <img src="{{ payment.payment_proof.url }}" alt="Payment Proof" class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if payment.payment_method == 'CASH' and payment.payment_status == 'PENDING' %}
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading">Cash Payment Pending</h5>
+                        <p>The customer has chosen to pay by cash. Please confirm once you receive the payment.</p>
+                        <hr>
+                        <form method="POST" action="{% url 'confirm_cash_payment' payment.id %}" class="mb-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle me-2"></i>Confirm Cash Payment
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if payment.payment_status == 'PAID' %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Payment has been successfully completed.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-details {
+    background-color: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.badge {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+}
+</style>
+{% endblock %} 

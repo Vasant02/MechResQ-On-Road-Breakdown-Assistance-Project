@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Process Payment - ₹{{ total_amount }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0 text-center">
+                        <i class="fas fa-lock me-2"></i>Secure Payment
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <img src="{% static 'images/payment-secure.png' %}" alt="Secure Payment" class="mb-3" style="height: 60px;">
+                        <h5 class="text-primary mb-0">Amount: ₹{{ total_amount }}</h5>
+                        <p class="text-muted">Service Request #{{ service_request.id }}</p>
+                    </div>
+
+                    {% if payment_method == 'UPI' %}
+                    <div class="payment-upi mb-4">
+                        <h5 class="mb-3">Pay using UPI</h5>
+                        <div class="text-center mb-3">
+                            <img src="{% static 'images/qr-code.png' %}" alt="QR Code" style="height: 200px;">
+                            <p class="mt-2 mb-0">Scan QR code to pay</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="mb-2">Or pay using UPI ID</p>
+                            <div class="d-flex align-items-center justify-content-center gap-2">
+                                <code class="bg-light px-3 py-2 rounded">mechanic@upibank</code>
+                                <button class="btn btn-sm btn-outline-primary" onclick="copyUpiId()">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif payment_method == 'CARD' %}
+                    <div class="payment-card">
+                        <h5 class="mb-3">Enter Card Details</h5>
+                        <form id="cardPaymentForm" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <label class="form-label">Card Number</label>
+                                <input type="text" class="form-control" id="cardNumber" required pattern="\d{16}" maxlength="16" placeholder="1234 5678 9012 3456">
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <label class="form-label">Expiry Date</label>
+                                    <input type="text" class="form-control" id="expiryDate" required pattern="\d{2}/\d{2}" maxlength="5" placeholder="MM/YY">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">CVV</label>
+                                    <input type="password" class="form-control" id="cvv" required pattern="\d{3}" maxlength="3" placeholder="123">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Card Holder Name</label>
+                                <input type="text" class="form-control" id="cardName" required placeholder="John Doe">
+                            </div>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="payment-netbanking">
+                        <h5 class="mb-3">Net Banking</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Select Bank</label>
+                            <select class="form-select" id="bankSelect" required>
+                                <option value="">Choose your bank</option>
+                                <option value="sbi">State Bank of India</option>
+                                <option value="hdfc">HDFC Bank</option>
+                                <option value="icici">ICICI Bank</option>
+                                <option value="axis">Axis Bank</option>
+                                <option value="kotak">Kotak Bank</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{% url 'process_payment' service_request.id %}" id="processPaymentForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="payment_method" value="{{ payment_method }}">
+                        <input type="hidden" name="service_charge" value="{{ service_charge }}">
+                        <input type="hidden" name="tax" value="{{ tax }}">
+                        <input type="hidden" name="total_amount" value="{{ total_amount }}">
+                        <button type="submit" class="btn btn-primary btn-lg w-100" onclick="return simulatePayment()">
+                            <i class="fas fa-lock me-2"></i>Pay Securely
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <a href="{% url 'service_request_detail' service_request.id %}" class="text-decoration-none">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel Payment
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="processingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <h5 class="mb-2">Processing Payment</h5>
+                <p class="text-muted mb-0">Please do not close this window...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+#cardNumber {
+    background-image: url('{% static "images/card-icons.png" %}');
+    background-position: 98% center;
+    background-repeat: no-repeat;
+    background-size: auto 20px;
+}
+.payment-upi img {
+    border: 1px solid #dee2e6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+</style>
+
+{% block extra_js %}
+<script>
+function formatCardNumber(input) {
+    let value = input.value.replace(/\D/g, '');
+    let formattedValue = value.replace(/(\d{4})/g, '$1 ').trim();
+    input.value = formattedValue;
+}
+
+function formatExpiryDate(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2);
+    }
+    input.value = value;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const cardNumber = document.getElementById('cardNumber');
+    const expiryDate = document.getElementById('expiryDate');
+    
+    if (cardNumber) {
+        cardNumber.addEventListener('input', function() {
+            formatCardNumber(this);
+        });
+    }
+    
+    if (expiryDate) {
+        expiryDate.addEventListener('input', function() {
+            formatExpiryDate(this);
+        });
+    }
+});
+
+function copyUpiId() {
+    navigator.clipboard.writeText('mechanic@upibank');
+    alert('UPI ID copied to clipboard!');
+}
+
+function simulatePayment() {
+    const modal = new bootstrap.Modal(document.getElementById('processingModal'));
+    modal.show();
+    
+    // Simulate payment processing delay
+    setTimeout(() => {
+        document.getElementById('processPaymentForm').submit();
+    }, 2000);
+    
+    return false;
+}
+</script>
+{% endblock %}
+{% endblock %} 

@@ -1,0 +1,14 @@
+DJango==4.2.7
+django-crispy-forms==2.4
+Pillow==11.3.0
+django-allauth==0.58.2
+django-environ==0.11.2
+psycopg2-binary==2.9.10
+requests==2.31.0
+django-bootstrap4==23.2
+geopy==2.4.1
+stripe==7.6.0
+crispy-bootstrap4==2025.6
+googlemaps==4.10.0
+openai
+python-dotenv

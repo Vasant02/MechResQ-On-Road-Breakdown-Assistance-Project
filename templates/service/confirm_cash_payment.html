@@ -1,0 +1,79 @@
+{% extends 'base_mechanic.html' %}
+{% load static %}
+
+{% block title %}Confirm Cash Payment - Service #{{ service_request.id }}{% endblock %}
+
+{% block main_content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">Confirm Cash Payment</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="display-1 text-warning mb-3">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h5>Cash Payment Confirmation</h5>
+                        <p class="text-muted">Please confirm that you have received the cash payment from the customer.</p>
+                    </div>
+
+                    <div class="payment-summary mb-4">
+                        <h6>Payment Details</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Service ID:</td>
+                                    <td class="text-end">#{{ service_request.id }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Customer:</td>
+                                    <td class="text-end">{{ service_request.user.get_full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Amount to Collect:</td>
+                                    <td class="text-end fw-bold">₹{{ payment.total_amount }}</td>
+                                </tr>
+                                <tr class="table-info">
+                                    <td>Your Share:</td>
+                                    <td class="text-end">₹{{ payment.mechanic_share }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        By confirming, you acknowledge that you have received ₹{{ payment.total_amount }} in cash from the customer.
+                    </div>
+
+                    <form method="POST" class="text-center">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Confirm Payment Received
+                        </button>
+                        <a href="{% url 'service_payment' service_request.id %}" class="btn btn-link d-block mt-3">
+                            Cancel
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-summary {
+    background-color: #f8fafc;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.btn-success {
+    padding: 0.75rem 1.5rem;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Submit Review - Service #{{ service_request.id }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'shared/components.css' %}">
+<style>
+    .rating-container {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+    .rating-container input[type="radio"] {
+        display: none;
+    }
+    .rating-container label {
+        color: #ddd;
+        font-size: 2rem;
+        cursor: pointer;
+    }
+    .rating-container label:hover,
+    .rating-container label:hover ~ label,
+    .rating-container input[type="radio"]:checked ~ label {
+        color: #ffd700;
+    }
+    .rating-container i {
+        transition: color 0.2s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Submit Review</h4>
+                </div>
+                <div class="card-body">
+                    <div class="service-details mb-4">
+                        <h5>Service Details</h5>
+                        <p class="mb-1"><strong>Service ID:</strong> #{{ service_request.id }}</p>
+                        <p class="mb-1"><strong>Mechanic:</strong> {{ service_request.mechanic.user.get_full_name }}</p>
+                        <p class="mb-1"><strong>Service Date:</strong> {{ service_request.completed_at|date:"M d, Y" }}</p>
+                        <p class="mb-0"><strong>Issue:</strong> {{ service_request.issue_description|truncatechars:100 }}</p>
+                    </div>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Rating</label>
+                            <div class="rating-container">
+                                {% for i in "54321"|make_list %}
+                                <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}" required>
+                                <label for="star{{ i }}"><i class="fas fa-star"></i></label>
+                                {% endfor %}
+                            </div>
+                            <div class="invalid-feedback">
+                                Please select a rating.
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="comment" class="form-label">Your Review</label>
+                            <textarea class="form-control" id="comment" name="comment" rows="4" required 
+                                    placeholder="Share your experience with the service..."></textarea>
+                            <div class="invalid-feedback">
+                                Please provide your review.
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <a href="{% url 'service_request_detail' service_request.id %}" class="btn btn-light me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}

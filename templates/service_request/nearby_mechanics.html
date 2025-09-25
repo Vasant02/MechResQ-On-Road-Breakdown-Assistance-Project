@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nearby Mechanics - Vehicle Breakdown Service{% endblock %}
+
+{% block extra_css %}
+<style>
+    #map {
+        height: 500px;
+        width: 100%;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .mechanic-list {
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    .mechanic-card {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .mechanic-card:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+    }
+    .mechanic-card h5 {
+        margin-bottom: 5px;
+        color: var(--primary-color);
+    }
+    .mechanic-card p {
+        margin-bottom: 3px;
+        font-size: 0.9rem;
+    }
+    .mechanic-card .distance {
+        font-weight: bold;
+        color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4 text-center">Nearby Mechanics for Service Request #{{ service_request.id }}</h1>
+    <p class="text-center text-muted mb-4">Location: {{ service_request.location }}</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div id="map"></div>
+        </div>
+        <div class="col-md-4">
+            <h3>Available Mechanics</h3>
+            <div class="mechanic-list">
+                {% if nearby_mechanics %}
+                    {% for mechanic_data in nearby_mechanics %}
+                        <div class="mechanic-card" data-lat="{{ mechanic_data.mechanic.latitude }}" data-lng="{{ mechanic_data.mechanic.longitude }}" data-name="{{ mechanic_data.mechanic.user.get_full_name }}" data-specialization="{{ mechanic_data.mechanic.specialization }}" data-distance="{{ mechanic_data.distance }}">
+                            <h5>{{ mechanic_data.mechanic.user.get_full_name }}</h5>
+                            <p>Specialization: {{ mechanic_data.mechanic.specialization }}</p>
+                            <p class="distance">{{ mechanic_data.distance }} km away</p>
+                            <a href="{% url 'assign_mechanic' service_request.id mechanic_data.mechanic.id %}" class="btn btn-sm btn-primary mt-2">Select Mechanic</a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No nearby mechanics found within 50 km radius.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script id="nearby-mechanics-data" type="application/json">
+        {{ mechanics_json|safe }}
+    </script>
+    <script id="nearby-places-data" type="application/json">
+        {{ places_json|safe }}
+    </script>
+    <div class="text-center mt-4">
+        <a href="{% url 'service_request_detail' service_request.id %}" class="btn btn-secondary">Back to Request Details</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let map;
+    let serviceRequestMarker;
+    let mechanicMarkers = [];
+    let placeMarkers = []; // New array for nearby places markers
+    let infoWindow;
+
+    function initMap() {
+        const serviceLat = parseFloat("{{ service_request.latitude }}");
+        const serviceLng = parseFloat("{{ service_request.longitude }}");
+        const serviceLocation = { lat: serviceLat, lng: serviceLng };
+
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: serviceLocation,
+            zoom: 13,
+        });
+
+        infoWindow = new google.maps.InfoWindow();
+
+        // Marker for the service request location
+        serviceRequestMarker = new google.maps.Marker({
+            position: serviceLocation,
+            map: map,
+            title: 'Your Service Location',
+            icon: {
+                url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+            }
+        });
+
+        serviceRequestMarker.addListener('click', () => {
+            infoWindow.setContent('<strong>Your Service Location</strong><br>{{ service_request.location }}');
+            infoWindow.open(map, serviceRequestMarker);
+        });
+
+        // Markers for nearby mechanics
+        const nearbyMechanics = JSON.parse(document.getElementById('nearby-mechanics-data').textContent);
+
+        nearbyMechanics.forEach(mechanic => {
+            const marker = new google.maps.Marker({
+                position: { lat: mechanic.lat, lng: mechanic.lng },
+                map: map,
+                title: mechanic.name,
+                icon: {
+                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                }
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.setContent(`
+                    <strong>${mechanic.name}</strong><br>
+                    Specialization: ${mechanic.specialization}<br>
+                    Distance: ${mechanic.distance} km
+                `);
+                infoWindow.open(map, marker);
+            });
+            mechanicMarkers.push(marker);
+        });
+
+        // Markers for nearby places (petrol bunks, automobile shops, towing services)
+        const nearbyPlaces = JSON.parse(document.getElementById('nearby-places-data').textContent);
+
+        nearbyPlaces.forEach(place => {
+            let iconUrl;
+            if (place.type === 'Gas Station') {
+                iconUrl = "http://maps.google.com/mapfiles/ms/icons/green-dot.png";
+            } else if (place.type === 'Car Repair' || place.type === 'Car Dealer') {
+                iconUrl = "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png";
+            } else {
+                iconUrl = "http://maps.google.com/mapfiles/ms/icons/ltblue-dot.png"; // Default for other types
+            }
+
+            const marker = new google.maps.Marker({
+                position: { lat: place.lat, lng: place.lng },
+                map: map,
+                title: place.name,
+                icon: {
+                    url: iconUrl
+                }
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.setContent(`
+                    <strong>${place.name}</strong><br>
+                    Type: ${place.type}<br>
+                    Rating: ${place.rating}<br>
+                    Address: ${place.vicinity}
+                `);
+                infoWindow.open(map, marker);
+            });
+            placeMarkers.push(marker);
+        });
+
+
+        // Fit map to bounds of all markers
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(serviceLocation);
+        mechanicMarkers.forEach(marker => bounds.extend(marker.getPosition()));
+        placeMarkers.forEach(marker => bounds.extend(marker.getPosition())); // Extend bounds for new place markers
+        map.fitBounds(bounds);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle clicks on mechanic cards to center map on their location
+        document.querySelectorAll('.mechanic-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const lat = parseFloat(this.dataset.lat);
+                const lng = parseFloat(this.dataset.lng);
+                const name = this.dataset.name;
+                const specialization = this.dataset.specialization;
+                const distance = this.dataset.distance;
+
+                map.setCenter({ lat: lat, lng: lng });
+                map.setZoom(15); // Zoom in on the selected mechanic
+
+                // Open info window for the selected mechanic
+                infoWindow.setContent(`
+                    <strong>${name}</strong><br>
+                    Specialization: ${specialization}<br>
+                    Distance: ${distance} km
+                `);
+                const selectedMarker = mechanicMarkers.find(marker => 
+                    marker.getPosition().lat() === lat && marker.getPosition().lng() === lng
+                );
+                if (selectedMarker) {
+                    infoWindow.open(map, selectedMarker);
+                }
+            });
+        });
+    });
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap" async defer></script>
+{% endblock %}

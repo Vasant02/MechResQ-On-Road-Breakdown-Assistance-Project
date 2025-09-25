@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load service_request_filters %}
+
+{% block extra_css %}
+<style>
+    .dashboard-content {
+        padding: 2rem;
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .service-request-card {
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .service-request-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .request-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid #eee;
+        background-color: #f8f9fa;
+    }
+
+    .request-body {
+        padding: 1.5rem;
+    }
+
+    .request-footer {
+        padding: 1.25rem;
+        background-color: #f8f9fa;
+        border-top: 1px solid #eee;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-buttons {
+        background: #fff;
+        padding: 0.5rem;
+        border-radius: 10px;
+        display: inline-flex;
+        gap: 0.5rem;
+    }
+
+    .filter-button {
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        color: #6c757d;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .filter-button.active {
+        background: #3498db;
+        color: #fff;
+    }
+
+    .mechanic-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(45deg, #2ecc71, #27ae60);
+    }
+
+    .bg-gradient-warning {
+        background: linear-gradient(45deg, #f1c40f, #f39c12);
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-in-progress {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+
+    .status-completed {
+        background-color: #d4edda;
+        color: #155724;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="main-wrapper">
+    <div class="dashboard-content">
+        <!-- Welcome Section -->
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-3 mb-4">
+            <div>
+                <h1 class="h3 mb-0" style="color: #2c3e50;">Welcome back, {{ request.user.get_full_name }}</h1>
+                <p class="text-muted mb-0">Here's what's happening with your service requests</p>
+            </div>
+            <a href="{% url 'core:create_service_request' %}" class="btn btn-primary d-flex align-items-center gap-2">
+                <i class="fas fa-plus"></i>
+                New Service Request
+            </a>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-md-4">
+                <div class="stat-card h-100">
+                    <div class="d-flex align-items-center p-4">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-gradient-primary">
+                                <i class="fas fa-clipboard-list text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Total Requests</h6>
+                            <h2 class="mb-0 display-6">{{ service_requests.count }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="stat-card h-100">
+                    <div class="d-flex align-items-center p-4">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-gradient-success">
+                                <i class="fas fa-check-circle text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Completed</h6>
+                            <h2 class="mb-0 display-6">{{ service_requests|completed_count }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="stat-card h-100">
+                    <div class="d-flex align-items-center p-4">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-gradient-warning">
+                                <i class="fas fa-clock text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Active Requests</h6>
+                            <h2 class="mb-0 display-6">{{ service_requests|in_progress_count }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Requests Section -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <h5 class="mb-0" style="color: #2c3e50;">Your Service Requests</h5>
+                    <div class="filter-buttons">
+                        <button type="button" class="filter-button active" data-filter="all">All</button>
+                        <button type="button" class="filter-button" data-filter="active">Active</button>
+                        <button type="button" class="filter-button" data-filter="completed">Completed</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                {% for request in service_requests %}
+                <div class="service-request-card" data-status="{{ request.status|lower }}">
+                    <div class="request-header">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                <h6 class="mb-1">#{{ request.id }} - {{ request.vehicle_type }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    {{ request.created_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                            <span class="status-badge {% if request.status == 'PENDING' %}status-pending{% elif request.status == 'IN_PROGRESS' %}status-in-progress{% else %}status-completed{% endif %}">
+                                <i class="fas fa-circle"></i>
+                                {{ request.status }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="request-body">
+                        <div class="row g-4">
+                            <div class="col-md-8">
+                                <p class="mb-3">
+                                    <i class="fas fa-tools me-2 text-primary"></i>
+                                    {{ request.issue_description|truncatechars:100 }}
+                                </p>
+                                <p class="mb-0">
+                                    <i class="fas fa-map-marker-alt me-2 text-danger"></i>
+                                    {{ request.location }}
+                                </p>
+                            </div>
+                            {% if request.mechanic %}
+                            <div class="col-md-4">
+                                <div class="mechanic-info">
+                                    <div class="d-flex align-items-center">
+                                        {% if request.mechanic.user.profile_picture and request.mechanic.user.profile_picture.url %}
+                                            <img src="{{ request.mechanic.user.profile_picture.url }}" 
+                                                 alt="Mechanic" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                                        {% else %}
+                                            <img src="{% static 'images/Mechanic.png' %}"
+                                                 alt="Mechanic" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                                        {% endif %}
+                                        <div class="ms-3">
+                                            <h6 class="mb-1">{{ request.mechanic.user.get_full_name }}</h6>
+                                            <small class="text-muted">{{ request.mechanic.specialization }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="request-footer">
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'core:service_request_detail' request.id %}" class="btn btn-primary">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
+                            {% if request.status == 'COMPLETED' and not request.review %}
+                            <a href="{% url 'core:submit_review' request.id %}" class="btn btn-success">
+                                <i class="fas fa-star me-2"></i>Rate Service
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5">
+                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                    <h5>No Service Requests Yet</h5>
+                    <p class="text-muted">Create your first service request to get started</p>
+                    <a href="{% url 'core:create_service_request' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>New Service Request
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('.filter-button');
+    const requestCards = document.querySelectorAll('.service-request-card');
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            const filter = button.dataset.filter;
+            requestCards.forEach(card => {
+                const status = card.dataset.status.toLowerCase();
+                if (filter === 'all' || 
+                    (filter === 'active' && (status === 'pending' || status === 'in_progress')) || 
+                    (filter === 'completed' && status === 'completed')) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

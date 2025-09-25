@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Receipt - Service #{{ service_request.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Payment Receipt</h4>
+                    <button onclick="window.print()" class="btn btn-light btn-sm">
+                        <i class="fas fa-print me-2"></i>Print Receipt
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <h2 class="mb-0">On Road Vehicle Breakdown</h2>
+                        <p class="text-muted mb-0">Emergency Vehicle Assistance</p>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted mb-3">Customer Details</h5>
+                            <p class="mb-1"><strong>Name:</strong> {{ service_request.user.get_full_name }}</p>
+                            <p class="mb-1"><strong>Phone:</strong> {{ service_request.user.phone_number }}</p>
+                            <p class="mb-0"><strong>Address:</strong> {{ service_request.user.address }}</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <h5 class="text-muted mb-3">Receipt Details</h5>
+                            <p class="mb-1"><strong>Receipt No:</strong> #{{ payment.id }}</p>
+                            <p class="mb-1"><strong>Date:</strong> {{ payment.paid_at|date:"F j, Y, g:i a" }}</p>
+                            <p class="mb-0"><strong>Status:</strong> 
+                                <span class="badge bg-success">{{ payment.get_payment_status_display }}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Service Charge</td>
+                                    <td class="text-end">₹{{ payment.service_charge }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Tax (18% GST)</td>
+                                    <td class="text-end">₹{{ payment.tax }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Total Amount</td>
+                                    <td class="text-end fw-bold">₹{{ payment.total_amount }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted mb-3">Service Details</h5>
+                            <p class="mb-1"><strong>Service ID:</strong> #{{ service_request.id }}</p>
+                            <p class="mb-1"><strong>Vehicle Type:</strong> {{ service_request.vehicle_type }}</p>
+                            <p class="mb-1"><strong>Issue:</strong> {{ service_request.issue_description|truncatechars:100 }}</p>
+                            <p class="mb-0"><strong>Location:</strong> {{ service_request.location }}</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <h5 class="text-muted mb-3">Payment Information</h5>
+                            <p class="mb-1"><strong>Payment Method:</strong> {{ payment.get_payment_method_display }}</p>
+                            {% if payment.transaction_id %}
+                            <p class="mb-1"><strong>Transaction ID:</strong> {{ payment.transaction_id }}</p>
+                            {% endif %}
+                            {% if payment.payment_proof %}
+                            <p class="mb-0">
+                                <strong>Payment Proof:</strong>
+                                <a href="{{ payment.payment_proof.url }}" target="_blank" class="btn btn-sm btn-outline-primary ms-2">
+                                    <i class="fas fa-image me-1"></i>View
+                                </a>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-0"><strong>Mechanic:</strong> {{ service_request.mechanic.user.get_full_name }}</p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <p class="mb-0 text-muted">Thank you for your business!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'service_request_detail' service_request.id %}" class="btn btn-light">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Service Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header button {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .card-header {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+    .badge {
+        border: 1px solid #198754 !important;
+        color: #198754 !important;
+        background-color: transparent !important;
+    }
+}
+</style>
+{% endblock %} 

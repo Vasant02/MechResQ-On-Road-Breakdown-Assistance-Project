@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Service Requests - Vehicle Breakdown Service{% endblock %}
+
+{% block extra_css %}
+<style>
+    .requests-container {
+        padding: 2rem;
+        margin-left: 280px;
+    }
+
+    .section-header {
+        margin-bottom: 2rem;
+    }
+
+    .section-header h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .section-header p {
+        color: #64748b;
+        font-size: 1rem;
+    }
+
+    .requests-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .request-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+    }
+
+    .request-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .request-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .vehicle-info {
+        flex: 1;
+    }
+
+    .vehicle-type {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .request-time {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-pending {
+        background: #fff7ed;
+        color: #c2410c;
+    }
+
+    .status-accepted {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .status-in-progress {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .request-details {
+        margin-bottom: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .detail-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--light-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-color);
+    }
+
+    .detail-content h4 {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .detail-content p {
+        font-size: 0.95rem;
+        color: var(--dark-color);
+        margin: 0;
+    }
+
+    .request-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .action-button {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+    }
+
+    .accept-button {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .accept-button:hover {
+        background: #2980b9;
+    }
+
+    .view-button {
+        background: var(--light-color);
+        color: var(--dark-color);
+    }
+
+    .view-button:hover {
+        background: #e2e8f0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.2rem;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 0;
+    }
+
+    @media (max-width: 768px) {
+        .requests-container {
+            margin-left: 0;
+            padding: 1rem;
+        }
+
+        .requests-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    {% include 'includes/mechanic_sidebar.html' %}
+
+    <div class="requests-container">
+        <div class="section-header">
+            <h1>Service Requests</h1>
+            <p>Manage your incoming and active service requests</p>
+        </div>
+
+        {% if pending_requests %}
+        <h2 class="mb-4">Pending Requests</h2>
+        <div class="requests-grid">
+            {% for request in pending_requests %}
+            <div class="request-card">
+                <div class="request-header">
+                    <div class="vehicle-info">
+                        <div class="vehicle-type">{{ request.vehicle_type }} Service</div>
+                        <div class="request-time">{{ request.created_at|timesince }} ago</div>
+                    </div>
+                    <span class="status-badge status-pending">{{ request.status }}</span>
+                </div>
+
+                <div class="request-details">
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="detail-content">
+                            <h4>Location</h4>
+                            <p>{{ request.location }}</p>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div class="detail-content">
+                            <h4>Issue</h4>
+                            <p>{{ request.issue_description|truncatechars:100 }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="request-actions">
+                    <form method="post" action="{% url 'core:service_request_detail' pk=request.pk %}" style="flex: 1;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="accept">
+                        <button type="submit" class="action-button accept-button">Accept Request</button>
+                    </form>
+                    <a href="{% url 'core:service_request_detail' pk=request.pk %}" class="action-button view-button">View Details</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if active_requests %}
+        <h2 class="mb-4 mt-5">Active Requests</h2>
+        <div class="requests-grid">
+            {% for request in active_requests %}
+            <div class="request-card">
+                <div class="request-header">
+                    <div class="vehicle-info">
+                        <div class="vehicle-type">{{ request.vehicle_type }} Service</div>
+                        <div class="request-time">{{ request.created_at|timesince }} ago</div>
+                    </div>
+                    <span class="status-badge {% if request.status == 'ACCEPTED' %}status-accepted{% else %}status-in-progress{% endif %}">
+                        {{ request.status }}
+                    </span>
+                </div>
+
+                <div class="request-details">
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="detail-content">
+                            <h4>Location</h4>
+                            <p>{{ request.location }}</p>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div class="detail-content">
+                            <h4>Issue</h4>
+                            <p>{{ request.issue_description|truncatechars:100 }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="request-actions">
+                    <a href="{% url 'core:service_request_detail' pk=request.pk %}" class="action-button accept-button">Continue Service</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not pending_requests and not active_requests %}
+        <div class="empty-state">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>No Service Requests</h3>
+            <p>There are no pending or active service requests at the moment.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

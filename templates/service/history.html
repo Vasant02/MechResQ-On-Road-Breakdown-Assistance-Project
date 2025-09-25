@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Service History - Vehicle Breakdown Service{% endblock %}
+
+{% block extra_css %}
+<style>
+    .history-card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .history-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-completed {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-in-progress {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+
+    .timeline {
+        position: relative;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1rem;
+    }
+
+    .timeline-date {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mechanic-info {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .mechanic-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .review-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .star-rating {
+        color: #ffc107;
+    }
+
+    .star-rating .far {
+        color: #dee2e6;
+    }
+
+    .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-btn {
+        padding: 0.4rem 1.25rem;
+        border-radius: 20px;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        color: #6c757d;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+        background: var(--primary-color);
+        color: #fff;
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-2">
+
+        </div>
+        <div class="col-10">
+            <div class="welcome-section">
+                <h1>Service History</h1>
+                <p>View all your past service requests and their details</p>
+            </div>
+            
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All Requests</button>
+                <button class="filter-btn" data-filter="active">Active</button>
+                <button class="filter-btn" data-filter="completed">Completed</button>
+            </div>
+            
+            <div class="timeline">
+                {% for request in service_requests %}
+                <div class="timeline-item" data-status="{{ request.status|lower }}">
+                    <div class="history-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="timeline-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ request.created_at|date:"F d, Y" }}
+                                </div>
+                                <span class="status-badge {% if request.status == 'PENDING' %}status-pending{% elif request.status == 'IN_PROGRESS' %}status-in-progress{% else %}status-completed{% endif %}">
+                                    <i class="fas fa-circle"></i>
+                                    {{ request.get_status_display }}
+                                </span>
+                            </div>
+                            
+                            <h5 class="card-title mb-3">
+                                <i class="fas fa-hashtag text-primary me-2"></i>
+                                Request #{{ request.id }} - {{ request.vehicle_type }}
+                            </h5>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <p class="mb-3">
+                                        <i class="fas fa-tools me-2 text-primary"></i>
+                                        {{ request.issue_description }}
+                                    </p>
+                                    <p class="mb-0">
+                                        <i class="fas fa-map-marker-alt me-2 text-danger"></i>
+                                        {{ request.location }}
+                                    </p>
+                                </div>
+                                {% if request.mechanic %}
+                                <div class="col-md-4">
+                                    <div class="mechanic-info">
+                                        <div class="d-flex align-items-center">
+                                            {% if request.mechanic.user.profile_picture %}
+                                                <img src="{{ request.mechanic.user.profile_picture.url }}" 
+                                                     alt="Mechanic" class="mechanic-avatar me-3">
+                                            {% else %}
+                                                <img src="{% static 'images/Mechanic.png' %}"
+                                                     alt="Mechanic" class="mechanic-avatar me-3">
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-1">{{ request.mechanic.user.get_full_name }}</h6>
+                                                <small class="text-muted">{{ request.mechanic.specialization }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+            
+                            {% if request.review %}
+                            <div class="review-section">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="star-rating me-2">
+                                        {% for i in "12345" %}
+                                            <i class="{% if i|add:'0' <= request.review.rating %}fas{% else %}far{% endif %} fa-star"></i>
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted">{{ request.review.created_at|date:"F d, Y" }}</small>
+                                </div>
+                                <p class="mb-0">{{ request.review.comment }}</p>
+                            </div>
+                            {% endif %}
+            
+                            <div class="mt-3">
+                                <a href="{% url 'core:service_request_detail' request.id %}" class="btn btn-primary">
+                                    <i class="fas fa-eye me-2"></i>View Details
+                                </a>
+                                {% if request.status == 'COMPLETED' and not request.review %}
+                                <a href="{% url 'core:submit_review' request.id %}" class="btn btn-success ms-2">
+                                    <i class="fas fa-star me-2"></i>Rate Service
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h5>No Service History</h5>
+                    <p class="text-muted">You haven't made any service requests yet</p>
+                    <a href="{% url 'core:create_service_request' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create New Request
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const requestItems = document.querySelectorAll('.timeline-item');
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const filter = button.getAttribute('data-filter');
+            
+            // Update active button
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Filter requests
+            requestItems.forEach(item => {
+                const status = item.getAttribute('data-status');
+                if (filter === 'all' || 
+                    (filter === 'active' && (status === 'pending' || status === 'in_progress')) ||
+                    (filter === 'completed' && status === 'completed')) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

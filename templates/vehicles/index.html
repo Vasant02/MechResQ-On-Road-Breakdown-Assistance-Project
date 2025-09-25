@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .dashboard-wrapper {
+        margin-left: 280px;
+        min-height: 100vh;
+        padding: 2rem;
+        transition: all 0.3s ease;
+    }
+
+    .vehicle-card {
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .vehicle-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .vehicle-image {
+        height: 200px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .vehicle-info {
+        padding: 1.5rem;
+    }
+
+    .vehicle-status {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .status-active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-maintenance {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .vehicle-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 10px;
+        margin-top: 1rem;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .add-vehicle-card {
+        background: #fff;
+        border: 2px dashed #dee2e6;
+        border-radius: 15px;
+        height: 100%;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .add-vehicle-card:hover {
+        border-color: #3498db;
+        background: #f8f9fa;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-wrapper {
+            margin-left: 0;
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'components/sidebar.html' with active_page='vehicles' %}
+
+<div class="dashboard-wrapper">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">My Vehicles</h1>
+            <p class="text-muted mb-0">Manage your vehicle information</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+            <i class="fas fa-plus me-2"></i>Add Vehicle
+        </button>
+    </div>
+
+    <div class="row g-4">
+        {% if vehicles %}
+            {% for vehicle in vehicles %}
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="vehicle-card">
+                    <div class="vehicle-image" style="background-image: url('{% if vehicle.image %}{{ vehicle.image.url }}{% else %}{% static 'images/default-vehicle.jpg' %}{% endif %}');"></div>
+                    <div class="vehicle-info">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">{{ vehicle.name }}</h5>
+                            <span class="vehicle-status {% if vehicle.status == 'active' %}status-active{% else %}status-maintenance{% endif %}">
+                                {{ vehicle.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="text-muted mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})
+                        </p>
+                        <div class="vehicle-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">{{ vehicle.service_count }}</div>
+                                <div class="stat-label">Services</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ vehicle.mileage }}k</div>
+                                <div class="stat-label">Mileage</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ vehicle.active_issues }}</div>
+                                <div class="stat-label">Issues</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary w-100" onclick="editVehicle('{{ vehicle.id }}')">
+                                <i class="fas fa-edit me-2"></i>Manage Vehicle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-car fa-3x text-muted mb-3"></i>
+                    <h5>No Vehicles Added Yet</h5>
+                    <p class="text-muted">Add your first vehicle to get started</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+                        <i class="fas fa-plus me-2"></i>Add Vehicle
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Vehicle Modal -->
+<div class="modal fade" id="addVehicleModal" tabindex="-1" aria-labelledby="addVehicleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addVehicleModalLabel">Add New Vehicle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addVehicleForm" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="vehicleName" class="form-label">Vehicle Name</label>
+                        <input type="text" class="form-control" id="vehicleName" name="vehicleName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="vehicleType" class="form-label">Vehicle Type</label>
+                        <select class="form-select" id="vehicleType" name="vehicleType" required>
+                            <option value="">Select vehicle type</option>
+                            <option value="car">Car</option>
+                            <option value="motorcycle">Motorcycle</option>
+                            <option value="truck">Truck</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="make" class="form-label">Make</label>
+                            <input type="text" class="form-control" id="make" name="make" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="model" class="form-label">Model</label>
+                            <input type="text" class="form-control" id="model" name="model" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" required min="1900" max="{{ current_year }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="licensePlate" class="form-label">License Plate</label>
+                            <input type="text" class="form-control" id="licensePlate" name="licensePlate" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="vehicleImage" class="form-label">Vehicle Image</label>
+                        <input type="file" class="form-control" id="vehicleImage" name="vehicleImage" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Vehicle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addVehicleForm = document.getElementById('addVehicleForm');
+    
+    // Set max year to current year
+    const yearInput = document.getElementById('year');
+    const currentYear = new Date().getFullYear();
+    yearInput.max = currentYear;
+    yearInput.placeholder = `1900 - ${currentYear}`;
+    
+    // Handle form submission
+    addVehicleForm.addEventListener('submit', function(e) {
+        // Form will submit normally since we added the proper form attributes
+    });
+});
+
+function editVehicle(vehicleId) {
+    // Implement edit functionality
+    console.log('Edit vehicle:', vehicleId);
+}
+
+// Show success/error messages
+{% if messages %}
+    {% for message in messages %}
+        alert('{{ message }}');
+    {% endfor %}
+{% endif %}
+</script>
+{% endblock %} 

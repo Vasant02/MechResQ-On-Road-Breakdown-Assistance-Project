@@ -1,0 +1,191 @@
+{% extends 'base_mechanic.html' %}
+{% load static %}
+
+{% block title %}Reviews - Mechanic Dashboard{% endblock %}
+
+{% block page_css %}
+<style>
+    .reviews-container {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .reviews-header {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .rating-summary {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .average-rating {
+        font-size: 3rem;
+        font-weight: 600;
+        color: #1e293b;
+        line-height: 1;
+    }
+
+    .rating-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .total-reviews {
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+
+    .star-rating {
+        color: #f59e0b;
+        font-size: 1.25rem;
+    }
+
+    .reviews-list {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .review-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .review-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .reviewer-name {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .review-date {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .review-rating {
+        color: #f59e0b;
+    }
+
+    .review-content {
+        color: #475569;
+        line-height: 1.5;
+    }
+
+    .service-info {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .no-reviews {
+        background: white;
+        border-radius: 12px;
+        padding: 3rem;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .no-reviews-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #e2e8f0;
+    }
+
+    @media (max-width: 768px) {
+        .reviews-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="reviews-container">
+    <!-- Reviews Header -->
+    <div class="reviews-header">
+        <div class="rating-summary">
+            <div class="average-rating">{{ avg_rating }}</div>
+            <div class="rating-details">
+                <div class="star-rating">
+                    {% for i in "12345"|make_list %}
+                        {% if forloop.counter <= avg_rating %}
+                            ★
+                        {% else %}
+                            ☆
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="total-reviews">{{ reviews.count }} reviews</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews List -->
+    <div class="reviews-list">
+        {% if reviews %}
+            {% for review in reviews %}
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-info">
+                        <div class="reviewer-name">{{ review.service_request.user.get_full_name }}</div>
+                        <div class="review-date">{{ review.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="review-rating">
+                        {% for i in "12345"|make_list %}
+                            {% if forloop.counter <= review.rating %}
+                                ★
+                            {% else %}
+                                ☆
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="review-content">
+                    {{ review.comment }}
+                </div>
+                <div class="service-info">
+                    Service Request #{{ review.service_request.id }} - 
+                    {% if review.service_request.vehicle %}
+                        {{ review.service_request.vehicle.name }} ({{ review.service_request.vehicle.license_plate }})
+                    {% else %}
+                        {{ review.service_request.vehicle_type }}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-reviews">
+                <div class="no-reviews-icon">📝</div>
+                <h3>No Reviews Yet</h3>
+                <p>Your reviews will appear here once customers start rating your services.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

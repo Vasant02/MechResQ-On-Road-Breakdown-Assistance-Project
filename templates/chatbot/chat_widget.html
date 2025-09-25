@@ -1,0 +1,335 @@
+<style>
+    .chat-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 350px;
+        height: 450px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+        overflow: hidden;
+    }
+    .chat-header {
+        background-color: #007bff;
+        color: white;
+        padding: 10px;
+        border-top-left-radius: 9px;
+        border-top-right-radius: 9px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    .chat-header h4 {
+        margin: 0;
+        color: white;
+    }
+    .chat-body {
+        flex-grow: 1;
+        padding: 10px;
+        overflow-y: auto;
+        background-color: #f9f9f9;
+    }
+    .chat-message {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        border-radius: 15px;
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+    .chat-message.user {
+        background-color: #007bff;
+        color: white;
+        align-self: flex-end;
+        margin-left: auto;
+        border-bottom-right-radius: 2px;
+    }
+    .chat-message.ai {
+        background-color: #e2e2e2;
+        color: #333;
+        align-self: flex-start;
+        margin-right: auto;
+        border-bottom-left-radius: 2px;
+    }
+    .chat-input-area {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-top: 1px solid #eee;
+        position: relative; /* For positioning the attachment dropdown */
+        gap: 5px; /* Add gap for spacing between elements */
+    }
+    .chat-input-area input {
+        flex-grow: 1;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        padding: 8px 15px;
+        outline: none;
+        min-width: 0; /* Allow input to shrink */
+    }
+    .chat-input-area button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 12px; /* Reduced padding */
+        cursor: pointer;
+        transition: background-color 0.2s;
+        white-space: nowrap; /* Prevent text from wrapping */
+    }
+    .chat-input-area button:hover {
+        background-color: #0056b3;
+    }
+    .attachment-button {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #666;
+        cursor: pointer;
+        padding: 0 5px; /* Removed margin-right */
+    }
+    .attachment-button:hover {
+        color: #007bff;
+    }
+    .attachment-dropdown {
+        position: absolute;
+        bottom: 60px; /* Adjust based on input area height */
+        left: 10px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 5px 0;
+        z-index: 1002;
+        min-width: 180px;
+    }
+    .attachment-dropdown-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+    }
+    .attachment-dropdown-item:hover {
+        background-color: #f0f0f0;
+    }
+    .attachment-dropdown-item i {
+        margin-right: 10px;
+        color: #007bff;
+    }
+    .chat-toggle-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        z-index: 1001;
+    }
+    .hidden {
+        display: none;
+    }
+</style>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<button class="chat-toggle-button" id="chatToggleButton">💬</button>
+
+<div class="chat-container hidden" id="chatContainer">
+    <div class="chat-header" id="chatHeader">
+        <h4>ResQAssist</h4>
+        <span id="closeChatButton" style="font-size: 1.2em;">&times;</span>
+    </div>
+    <div class="chat-body" id="chatBody">
+        <!-- Chat messages will be appended here -->
+        <div class="chat-message ai">Hello! How can I assist you with your vehicle today?</div>
+    </div>
+    <div class="chat-input-area">
+        <button class="attachment-button" id="attachmentButton">➕</button>
+        <input type="text" id="chatInput" placeholder="Type your message...">
+        <button id="sendChatButton">Send</button>
+
+        <div class="attachment-dropdown hidden" id="attachmentDropdown">
+            <div class="attachment-dropdown-item" id="addPhotosFiles">
+                <i class="fas fa-paperclip"></i> Add photos & files
+            </div>
+            <input type="file" id="fileInput" multiple class="hidden">
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatToggleButton = document.getElementById('chatToggleButton');
+        const chatContainer = document.getElementById('chatContainer');
+        const closeChatButton = document.getElementById('closeChatButton');
+        const chatHeader = document.getElementById('chatHeader');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatButton = document.getElementById('sendChatButton');
+        const chatBody = document.getElementById('chatBody');
+        const attachmentButton = document.getElementById('attachmentButton');
+        const attachmentDropdown = document.getElementById('attachmentDropdown');
+        const addPhotosFiles = document.getElementById('addPhotosFiles');
+        const fileInput = document.getElementById('fileInput');
+
+        let isChatOpen = false;
+
+        function toggleChat() {
+            isChatOpen = !isChatOpen;
+            const sosButton = document.getElementById('sosButton'); // Get the SOS button
+
+            if (isChatOpen) {
+                chatContainer.classList.remove('hidden');
+                chatToggleButton.classList.add('hidden');
+                if (sosButton) {
+                    sosButton.style.display = 'none'; // Hide SOS button when chat is open
+                }
+            } else {
+                chatContainer.classList.add('hidden');
+                chatToggleButton.classList.remove('hidden');
+                if (sosButton) {
+                    sosButton.style.display = 'flex'; // Show SOS button when chat is closed (using flex as per its original style)
+                }
+                attachmentDropdown.classList.add('hidden'); // Hide dropdown when chat closes
+            }
+        }
+
+        chatToggleButton.addEventListener('click', toggleChat);
+        closeChatButton.addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevent the click from bubbling up to the chatHeader
+            toggleChat();
+        });
+        chatHeader.addEventListener('click', toggleChat); // Toggle on header click
+
+        sendChatButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        attachmentButton.addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevent click from closing dropdown immediately
+            attachmentDropdown.classList.toggle('hidden');
+        });
+
+        addPhotosFiles.addEventListener('click', function() {
+            fileInput.click(); // Trigger the hidden file input
+            attachmentDropdown.classList.add('hidden'); // Hide dropdown after selection
+        });
+
+        fileInput.addEventListener('change', function(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                // For now, just log the file names. Actual upload logic would go here.
+                let fileNames = [];
+                for (let i = 0; i < files.length; i++) {
+                    fileNames.push(files[i].name);
+                }
+                appendMessage(`Attached: ${fileNames.join(', ')}`, 'user');
+                // You would typically send these files to the server here
+                // sendFilesToChatbot(files);
+            }
+        });
+
+        // Close dropdown if clicked outside
+        document.addEventListener('click', function(event) {
+            if (!attachmentDropdown.contains(event.target) && !attachmentButton.contains(event.target)) {
+                attachmentDropdown.classList.add('hidden');
+            }
+        });
+
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (message) {
+                appendMessage(message, 'user');
+                chatInput.value = '';
+                sendToChatbot(message);
+            }
+        }
+
+        function appendMessage(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', sender);
+            messageElement.textContent = message;
+            chatBody.appendChild(messageElement);
+            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to bottom
+        }
+
+        function sendToChatbot(message) {
+            // Display a loading indicator or "typing..." message
+            const loadingMessage = document.createElement('div');
+            loadingMessage.classList.add('chat-message', 'ai');
+            loadingMessage.textContent = 'AI is typing...';
+            loadingMessage.id = 'loadingMessage';
+            chatBody.appendChild(loadingMessage);
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            fetch('/chatbot/response/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') // Get CSRF token
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove loading indicator
+                const loadingElem = document.getElementById('loadingMessage');
+                if (loadingElem) {
+                    loadingElem.remove();
+                }
+                if (data.response) {
+                    appendMessage(data.response, 'ai');
+                } else if (data.error) {
+                    appendMessage('Error: ' + data.error, 'ai');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Remove loading indicator
+                const loadingElem = document.getElementById('loadingMessage');
+                if (loadingElem) {
+                    loadingElem.remove();
+                }
+                appendMessage('Sorry, something went wrong. Please try again.', 'ai');
+            });
+        }
+
+        // Function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>

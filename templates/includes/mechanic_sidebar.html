@@ -1,0 +1,385 @@
+{% load static %}
+
+<div class="mechanic-sidebar">
+    <div class="sidebar-header">
+        <div class="mechanic-profile">
+            <div class="profile-image">
+                <img src="{{ request.user.get_profile_picture_url }}" alt="Mechanic Profile">
+                <span class="status-indicator {% if request.user.mechanic.available %}active{% endif %}"></span>
+            </div>
+            <div class="profile-info">
+                <h5>{{ request.user.get_full_name }}</h5>
+                <p class="specialization">{{ request.user.mechanic.specialization }}</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <h6 class="nav-section-title">MAIN MENU</h6>
+            <ul class="nav-items">
+                <li class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                    <a href="{% url 'core:dashboard' %}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'service_requests' %}active{% endif %}">
+                    <a href="{% url 'core:service_requests' %}">
+                        <i class="fas fa-tools"></i>
+                        <span>Service Requests</span>
+                        <span class="badge bg-primary pending-count">{{ pending_requests_count }}</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'schedule' %}active{% endif %}">
+                    <a href="{% url 'core:schedule' %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Schedule</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <h6 class="nav-section-title">MANAGEMENT</h6>
+            <ul class="nav-items">
+                <li class="nav-item {% if active_page == 'earnings' %}active{% endif %}">
+                    <a href="{% url 'core:earnings' %}">
+                        <i class="fas fa-wallet"></i>
+                        <span>Earnings</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'reviews' %}active{% endif %}">
+                    <a href="{% url 'core:reviews' %}">
+                        <i class="fas fa-star"></i>
+                        <span>Reviews</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'history' %}active{% endif %}">
+                    <a href="{% url 'core:service_history' %}">
+                        <i class="fas fa-history"></i>
+                        <span>Service History</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <h6 class="nav-section-title">SETTINGS</h6>
+            <ul class="nav-items">
+                <li class="nav-item {% if active_page == 'profile' %}active{% endif %}">
+                    <a href="{% url 'core:profile' %}">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Profile Settings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'core:logout' %}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="availability-toggle">
+            <span>Availability Status</span>
+            <label class="switch">
+                <input type="checkbox" id="availabilityToggle" 
+                       {% if request.user.mechanic.available %}checked{% endif %}>
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<style>
+.mechanic-sidebar {
+    width: 280px;
+    height: 100vh;
+    background: #ffffff;
+    border-right: 1px solid #e5e9f2;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e9f2;
+}
+
+.mechanic-profile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-image {
+    position: relative;
+    width: 50px;
+    height: 50px;
+}
+
+.profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #dc3545;
+}
+
+.status-indicator.active {
+    background: #28a745;
+}
+
+.profile-info h5 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.profile-info .specialization {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #718096;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 1.5rem 0;
+    overflow-y: auto;
+}
+
+.nav-section {
+    margin-bottom: 2rem;
+}
+
+.nav-section-title {
+    padding: 0 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #a0aec0;
+    letter-spacing: 0.05em;
+}
+
+.nav-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-item {
+    margin: 0.25rem 0;
+}
+
+.nav-item a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: #4a5568;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.nav-item a i {
+    width: 20px;
+    font-size: 1.1rem;
+    margin-right: 0.75rem;
+    color: #a0aec0;
+    transition: all 0.2s ease;
+}
+
+.nav-item a span {
+    flex: 1;
+}
+
+.nav-item:hover a {
+    color: var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.05);
+}
+
+.nav-item:hover a i {
+    color: var(--primary-color);
+}
+
+.nav-item.active a {
+    color: var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.1);
+    font-weight: 500;
+}
+
+.nav-item.active a i {
+    color: var(--primary-color);
+}
+
+.nav-item.active a::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--primary-color);
+    border-radius: 0 4px 4px 0;
+}
+
+.pending-count {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e5e9f2;
+}
+
+.availability-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+}
+
+.availability-toggle span {
+    font-size: 0.875rem;
+    color: #4a5568;
+}
+
+/* Switch styles */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e0;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+.slider.round {
+    border-radius: 24px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+@media (max-width: 768px) {
+    .mechanic-sidebar {
+        transform: translateX(-100%);
+    }
+
+    .mechanic-sidebar.show {
+        transform: translateX(0);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const availabilityToggle = document.getElementById('availabilityToggle');
+    
+    availabilityToggle.addEventListener('change', function() {
+        const isAvailable = this.checked;
+        
+        fetch('/api/mechanic/update-availability/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                available: isAvailable
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const statusIndicator = document.querySelector('.status-indicator');
+                if (isAvailable) {
+                    statusIndicator.classList.add('active');
+                } else {
+                    statusIndicator.classList.remove('active');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            this.checked = !isAvailable; // Revert the toggle if there's an error
+        });
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>

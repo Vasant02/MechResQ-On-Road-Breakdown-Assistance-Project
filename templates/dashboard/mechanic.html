@@ -1,0 +1,721 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Mechanic Dashboard - Vehicle Breakdown Service{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        overflow-x: hidden;
+    }
+
+    .dashboard-container {
+        display: flex;
+        min-height: 100vh;
+        background: #f8fafc;
+        position: relative;
+        width: 100%;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100vh;
+        background: #fff;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+        z-index: 1000;
+        overflow-y: auto;
+    }
+
+    .main-content {
+        flex: 1;
+        margin-left: 280px;
+        padding: 2rem;
+        min-height: 100vh;
+        width: calc(100% - 280px);
+        position: relative;
+        z-index: 1;
+        background: #f8fafc;
+    }
+
+    .dashboard-header {
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+
+    .welcome-section {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #2980b9 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .welcome-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.1) 100%);
+        opacity: 0.2;
+    }
+
+    .welcome-text h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .welcome-text p {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .stat-title {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-trend {
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .trend-up {
+        color: #10b981;
+    }
+
+    .trend-down {
+        color: #ef4444;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        width: 100%;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        height: 400px;
+    }
+
+    .chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .service-requests {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .request-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e5e9f2;
+    }
+
+    .request-list {
+        padding: 1rem;
+    }
+
+    .request-item {
+        padding: 1rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .request-item:hover {
+        background: #f1f5f9;
+    }
+
+    .request-item:not(:last-child) {
+        margin-bottom: 0.5rem;
+    }
+
+    .request-info {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+
+    .request-details h4 {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .request-details p {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .request-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-pending {
+        background: #fff7ed;
+        color: #c2410c;
+    }
+
+    .status-progress {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px !important;
+        width: 100% !important;
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+            width: 100%;
+            padding: 1rem;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .welcome-section {
+            padding: 1.5rem;
+        }
+
+        .welcome-text h1 {
+            font-size: 1.5rem;
+        }
+    }
+
+    .chart-period-selector select {
+        padding: 0.375rem 2rem 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        color: #475569;
+        background-color: #fff;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .chart-period-selector select:hover {
+        border-color: #cbd5e1;
+    }
+
+    .chart-period-selector select:focus {
+        outline: none;
+        border-color: rgba(78, 115, 223, 0.5);
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.1);
+    }
+
+    .chart-area {
+        position: relative;
+        margin: 0 -10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    
+    <div class="sidebar">
+        {% include 'includes/mechanic_sidebar.html' %}
+    </div>
+
+    <main class="main-content">
+        <div class="dashboard-header">
+            <div class="welcome-section">
+                    <div class="welcome-text">
+                        <h1>Welcome back, {{ request.user.get_full_name }}</h1>
+                        <p>Here's what's happening with your service requests today</p>
+                        <button id="updateLocationBtn" class="btn btn-light btn-sm mt-3 shadow-sm hover-scale">
+                            <i class="fas fa-map-marker-alt me-2"></i> Update My Location
+                        </button>
+                    </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Services</span>
+                        <div class="stat-icon" style="background: rgba(var(--primary-color-rgb), 0.1); color: var(--primary-color);">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ total_services }}</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>12% vs last month</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Completed Services</span>
+                        <div class="stat-icon" style="background: #ecfdf5; color: #047857;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ completed_services }}</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>8% vs last month</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">In Progress</span>
+                        <div class="stat-icon" style="background: #fff7ed; color: #c2410c;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ in_progress_services }}</div>
+                    <div class="stat-trend trend-down">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>3% vs last month</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Earnings</span>
+                        <div class="stat-icon" style="background: #f0fdf4; color: #16a34a;">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${{ total_earnings }}</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>15% vs last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Service Performance</h6>
+                        <div class="chart-period-selector">
+                            <select class="form-select form-select-sm" id="chartPeriod">
+                                <option value="7">Last 7 Days</option>
+                                <option value="30" selected>Last 30 Days</option>
+                                <option value="90">Last 3 Months</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 350px;">
+                            <canvas id="serviceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="service-requests">
+                    <div class="request-header">
+                        <h3 class="chart-title">Recent Requests</h3>
+                    </div>
+                    <div class="request-list">
+                        {% for service_request in service_requests|slice:":5" %}
+                        <a href="{% url 'core:service_request_detail' pk=service_request.pk %}" class="request-item">
+                            <div class="request-info">
+                                <div class="request-details">
+                                    <h4>{{ service_request.vehicle_type }} Service</h4>
+                                    <p>{{ service_request.location }}</p>
+                                </div>
+                                <span class="request-status {% if service_request.status == 'PENDING' %}status-pending{% else %}status-progress{% endif %}">
+                                    {{ service_request.status }}
+                                </span>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <div class="text-center py-4 text-muted">
+                            No recent service requests
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="service-requests mt-4">
+                    <div class="request-header">
+                        <h3 class="chart-title">Emergency Requests</h3>
+                    </div>
+                    <div class="request-list">
+                        {% for emergency_request in emergency_requests|slice:":5" %}
+                        <div class="request-item">
+                            <div class="request-info">
+                                <div class="request-details">
+                                    <h4>Emergency from {{ emergency_request.user.username }}</h4>
+                                    <p>Location: {{ emergency_request.latitude }}, {{ emergency_request.longitude }}</p>
+                                    <p>Status: {{ emergency_request.status }}</p>
+                                </div>
+                                {% if emergency_request.status == 'PENDING' %}
+                                <button class="btn btn-sm btn-danger" onclick="acceptEmergencyRequest('{{ emergency_request.id }}')">Accept SOS</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4 text-muted">
+                            No emergency requests
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Service Performance Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('serviceChart').getContext('2d');
+        const serviceTrendData = JSON.parse('{{ service_trend|escapejs }}');
+        let chart;
+
+        function createGradient(ctx) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(78, 115, 223, 0.2)');
+            gradient.addColorStop(1, 'rgba(78, 115, 223, 0.0)');
+            return gradient;
+        }
+
+        function initChart(data, labels) {
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Services',
+                        data: data,
+                        lineTension: 0.4,
+                        backgroundColor: createGradient(ctx),
+                        borderColor: "rgba(78, 115, 223, 1)",
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: "#ffffff",
+                        pointBorderColor: "rgba(78, 115, 223, 1)",
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+                        pointHoverBorderColor: "#ffffff",
+                        pointHoverBorderWidth: 2,
+                        pointHitRadius: 10,
+                        fill: true
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            left: 10,
+                            right: 25,
+                            top: 25,
+                            bottom: 0
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                maxTicksLimit: 7,
+                                padding: 10,
+                                color: '#64748b',
+                                font: {
+                                    size: 12,
+                                    family: "'Inter', sans-serif",
+                                    weight: '500'
+                                }
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                maxTicksLimit: 5,
+                                padding: 10,
+                                color: '#64748b',
+                                font: {
+                                    size: 12,
+                                    family: "'Inter', sans-serif",
+                                    weight: '500'
+                                },
+                                callback: function(value) {
+                                    return value + ' services';
+                                }
+                            },
+                            grid: {
+                                color: "rgba(234, 236, 244, 0.8)",
+                                borderDash: [5],
+                                drawBorder: false,
+                                zeroLineColor: "rgba(234, 236, 244, 1)",
+                                zeroLineBorderDash: [5]
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: "rgba(255, 255, 255, 0.95)",
+                            titleColor: '#1e293b',
+                            titleFont: {
+                                size: 14,
+                                family: "'Inter', sans-serif",
+                                weight: '600'
+                            },
+                            bodyColor: '#64748b',
+                            bodyFont: {
+                                size: 13,
+                                family: "'Inter', sans-serif"
+                            },
+                            borderColor: 'rgba(220, 220, 220, 0.6)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            intersect: false,
+                            mode: 'index',
+                            caretPadding: 8,
+                            cornerRadius: 8,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Date: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    return 'Services: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Initialize with all data
+        const labels = serviceTrendData.map(item => {
+            const date = new Date(item.day);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        const data = serviceTrendData.map(item => item.count);
+        initChart(data, labels);
+
+        // Handle period changes
+        document.getElementById('chartPeriod').addEventListener('change', function(e) {
+            const days = parseInt(e.target.value);
+            const filteredData = serviceTrendData.slice(-days);
+            const newLabels = filteredData.map(item => {
+                const date = new Date(item.day);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            const newData = filteredData.map(item => item.count);
+            initChart(newData, newLabels);
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (chart) {
+                chart.resize();
+            }
+        });
+    });
+
+    // Function to accept emergency request
+    function acceptEmergencyRequest(emergencyRequestId) {
+        if (confirm('Are you sure you want to accept this emergency request?')) {
+            fetch(`/api/emergency/${emergencyRequestId}/accept/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error accepting emergency request: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while accepting the emergency request.');
+            });
+        }
+    }
+
+    // Function to update mechanic's location
+    document.getElementById('updateLocationBtn').addEventListener('click', function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    fetch('{% url "core:update_mechanic_location" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            latitude: latitude,
+                            longitude: longitude
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Your location has been updated successfully!');
+                        } else {
+                            alert('Error updating location: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while updating your location.');
+                    });
+                },
+                (error) => {
+                    alert('Error getting your location: ' + error.message);
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by your browser.');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-2">
+                {% include 'includes/mechanic_sidebar.html' %}
+            </div>
+            <div class="col-10">
+                <main class="dashboard-main">
+                    {% block main_content %}{% endblock %}
+                </main>
+            </div>
+        </div>
+    </div>    
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-layout {
+        display: flex;
+        min-height: calc(100vh - 60px);
+        background-color: #f8fafc;
+    }
+
+    .dashboard-main {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-layout {
+            flex-direction: column;
+        }
+
+        .dashboard-main {
+            padding: 1rem;
+        }
+    }
+</style>
+{% block page_css %}{% endblock %}
+{% endblock %} 
