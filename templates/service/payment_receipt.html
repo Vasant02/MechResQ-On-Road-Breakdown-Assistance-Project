@@ -101,7 +101,7 @@
             </div>
 
             <div class="text-center mt-4">
-                <a href="{% url 'service_request_detail' service_request.id %}" class="btn btn-light">
+                <a href="{% url 'core:service_request_detail' service_request.id %}" class="btn btn-light">
                     <i class="fas fa-arrow-left me-2"></i>Back to Service Details
                 </a>
             </div>
@@ -110,23 +110,78 @@
 </div>
 
 <style>
-@media print {
-    .btn, .card-header button {
-        display: none !important;
+    @media print {
+        /* Hide non-essential elements for print */
+        .sos-button,
+        #sosButton,
+        .chat-toggle-button,
+        #chatToggleButton,
+        .chat-container,
+        .sidebar,
+        .mobile-toggle,
+        .btn.btn-light, /* Hide the "Print Receipt" button itself */
+        .text-center.mt-4 /* Hide "Back to Service Details" button */
+         {
+            display: none !important;
+        }
+
+        /* Adjust content wrapper for full width */
+        .content-wrapper {
+            margin-left: 0 !important;
+            width: 100% !important;
+            padding: 0 !important; /* Remove padding from content wrapper */
+        }
+
+        /* Set A4 paper size and margins */
+        @page {
+            size: A4;
+            margin: 1cm; /* Adjust margins as needed */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact; /* Ensure background colors are printed */
+            print-color-adjust: exact;
+        }
+
+        .container.py-5 {
+            padding: 0 !important; /* Remove container padding */
+            max-width: 100% !important;
+        }
+
+        .card {
+            box-shadow: none !important; /* Remove shadows for print */
+            border: 1px solid #ccc !important; /* Add a light border to the card */
+        }
+
+        .card-header {
+            background-color: #e9ecef !important; /* Light background for header */
+            color: #333 !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding: 0.75rem 1.25rem !important;
+        }
+
+        .card-body {
+            padding: 1.25rem !important;
+        }
+
+        /* Adjust font sizes for better fit */
+        h2 { font-size: 1.5em !important; }
+        h4 { font-size: 1.2em !important; }
+        h5 { font-size: 1em !important; }
+        p, table { font-size: 0.9em !important; }
+        .badge { font-size: 0.7em !important; padding: 0.2em 0.5em !important; }
+
+        /* Ensure elements stay together */
+        .card, .table-responsive, .row.mb-4 {
+            page-break-inside: avoid !important;
+        }
+
+        /* Remove extra spacing */
+        .mb-4 { margin-bottom: 0.5rem !important; }
+        .py-5 { padding-top: 0 !important; padding-bottom: 0 !important; }
+        .pt-4 { padding-top: 0.5rem !important; }
     }
-    .card {
-        border: none !important;
-        box-shadow: none !important;
-    }
-    .card-header {
-        background-color: #fff !important;
-        color: #000 !important;
-    }
-    .badge {
-        border: 1px solid #198754 !important;
-        color: #198754 !important;
-        background-color: transparent !important;
-    }
-}
 </style>
-{% endblock %} 
+{% endblock %}

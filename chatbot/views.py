@@ -10,6 +10,8 @@ from .models import ChatMessage
 @login_required
 def chatbot_response(request):
     if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User not authenticated'}, status=401)
         try:
             data = json.loads(request.body)
             user_message = data.get('message')
@@ -28,7 +30,7 @@ def chatbot_response(request):
 
             # OpenRouter API configuration
             OPENROUTER_API_KEY = settings.OPENROUTER_API_KEY
-            OPENROUTER_MODEL = "google/gemini-flash-1.5" # Specified model
+            OPENROUTER_MODEL = settings.CHATBOT_MODEL # Use model from settings
             OPENROUTER_API_BASE = "https://openrouter.ai/api/v1/chat/completions"
 
             headers = {
@@ -38,7 +40,9 @@ def chatbot_response(request):
 
             payload = {
                 "model": OPENROUTER_MODEL,
-                "messages": messages
+                "messages": messages,
+                "temperature": 0.7, # Add temperature for more creative responses
+                "max_tokens": 500 # Limit response length
             }
 
             with httpx.Client() as client:

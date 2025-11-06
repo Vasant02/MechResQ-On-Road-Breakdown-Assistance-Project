@@ -14,6 +14,13 @@
         overflow: hidden;
     }
 
+    .map-container {
+        height: 200px; /* Adjust map height as needed */
+        width: 100%;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
     .history-card:hover {
         transform: translateY(-3px);
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
@@ -160,8 +167,9 @@
                                     </p>
                                     <p class="mb-0">
                                         <i class="fas fa-map-marker-alt me-2 text-danger"></i>
-                                        {{ request.location }}
+                                        Location: {{ request.location }}
                                     </p>
+                                    <div id="map-{{ request.id }}" class="map-container" data-latitude="{{ request.latitude }}" data-longitude="{{ request.longitude }}"></div>
                                 </div>
                                 {% if request.mechanic %}
                                 <div class="col-md-4">
@@ -228,32 +236,66 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- IMPORTANT: Replace YOUR_GOOGLE_MAPS_API_KEY with your actual Google Maps API Key -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap" async defer></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const requestItems = document.querySelectorAll('.timeline-item');
+    let mapsInitialized = false;
 
-    filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const filter = button.getAttribute('data-filter');
-            
-            // Update active button
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // Filter requests
-            requestItems.forEach(item => {
-                const status = item.getAttribute('data-status');
-                if (filter === 'all' || 
-                    (filter === 'active' && (status === 'pending' || status === 'in_progress')) ||
-                    (filter === 'completed' && status === 'completed')) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
+    function initMap() {
+        if (mapsInitialized || typeof google === 'undefined' || typeof google.maps === 'undefined') {
+            return;
+        }
+        mapsInitialized = true;
+
+        document.querySelectorAll('.map-container').forEach(mapDiv => {
+            const latitude = parseFloat(mapDiv.dataset.latitude);
+            const longitude = parseFloat(mapDiv.dataset.longitude);
+
+            if (!isNaN(latitude) && !isNaN(longitude)) {
+                const mapOptions = {
+                    center: { lat: latitude, lng: longitude },
+                    zoom: 15,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                };
+                const map = new google.maps.Map(mapDiv, mapOptions);
+                new google.maps.Marker({
+                    position: { lat: latitude, lng: longitude },
+                    map: map,
+                    title: 'Service Location'
+                });
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const requestItems = document.querySelectorAll('.timeline-item');
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const filter = button.getAttribute('data-filter');
+                
+                // Update active button
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Filter requests
+                requestItems.forEach(item => {
+                    const status = item.getAttribute('data-status');
+                    if (filter === 'all' || 
+                        (filter === 'active' && (status === 'pending' || status === 'in_progress')) ||
+                        (filter === 'completed' && status === 'completed')) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
             });
         });
+
+        // If the API script has already loaded and called initMap, this will do nothing.
+        // Otherwise, it will attempt to initialize maps if the API is ready.
+        initMap();
     });
-});
 </script>
 {% endblock %}

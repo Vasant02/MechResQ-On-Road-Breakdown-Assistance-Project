@@ -115,7 +115,7 @@ def register_user(request):
             user.address = form.cleaned_data['address']
             user.save()
             messages.success(request, 'Registration successful! Please login to continue.')
-            return redirect('login')
+            return redirect('core:login')
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -136,7 +136,7 @@ def register_mechanic(request):
             mechanic.user = user
             mechanic.save()
             messages.success(request, 'Mechanic registration successful! Please login to continue.')
-            return redirect('login')
+            return redirect('core:login')
         else:
             # Show user form errors
             for field, errors in user_form.errors.items():
@@ -161,9 +161,18 @@ def create_service_request(request):
         if form.is_valid():
             service_request = form.save(commit=False)
             service_request.user = request.user
+            
+            # Calculate estimated cost
+            mechanic = Mechanic.objects.filter(available=True).first() # Find an available mechanic
+            if mechanic:
+                base_fee = mechanic.base_fee
+                issue_length = len(service_request.issue_description.split())
+                estimated_cost = base_fee + (issue_length * 2) # Add Rs.2 for each word in the issue description
+                service_request.estimated_cost = estimated_cost
+            
             service_request.save()
-            messages.success(request, 'Service request created successfully!')
-            return redirect('service_request_detail', pk=service_request.pk)
+            messages.success(request, f'Service request created successfully! The estimated cost is Rs.{service_request.estimated_cost}.')
+            return redirect('core:service_request_detail', pk=service_request.pk)
     else:
         form = ServiceRequestForm()
     
@@ -290,7 +299,7 @@ def service_request_detail(request, pk):
                 )
                 messages.success(request, 'Service completed successfully! Payment has been initiated.')
             
-            return redirect('service_request_detail', pk=service_request.pk)
+            return redirect('core:service_request_detail', pk=service_request.pk)
         
         return render(request, 'service_request/mechanic_detail.html', {
             'service_request': service_request,
@@ -298,10 +307,37 @@ def service_request_detail(request, pk):
             'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY
         })
     
-    service_request_data = {
+    # Provide default coordinates if service_request.latitude or longitude are invalid
+    default_lat = 20.5937  # Center of India
+    default_lng = 78.9629
+
+    # Provide default coordinates if service_request.latitude or longitude are invalid
+    default_lat = 20.5937  # Center of India
+    default_lng = 78.9629
+
+    # Safely get latitude and longitude, falling back to defaults
+    service_lat = default_lat
+    if isinstance(service_request.latitude, (int, float)):
+        service_lat = service_request.latitude
+    elif isinstance(service_request.latitude, str) and service_request.latitude.replace('.', '', 1).isdigit():
+        try:
+            service_lat = float(service_request.latitude)
+        except ValueError:
+            pass # Keep default_lat
+
+    service_lng = default_lng
+    if isinstance(service_request.longitude, (int, float)):
+        service_lng = service_request.longitude
+    elif isinstance(service_request.longitude, str) and service_request.longitude.replace('.', '', 1).isdigit():
+        try:
+            service_lng = float(service_request.longitude)
+        except ValueError:
+            pass # Keep default_lng
+
+    service_request_data_dict = { # Renamed to avoid confusion with the JSON string
         'id': service_request.id,
-        'latitude': service_request.latitude,
-        'longitude': service_request.longitude,
+        'latitude': service_lat,
+        'longitude': service_lng,
         'mechanic_latitude': service_request.mechanic_latitude,
         'mechanic_longitude': service_request.mechanic_longitude,
         'status': service_request.status,
@@ -314,7 +350,7 @@ def service_request_detail(request, pk):
         'service_request': service_request,
         'active_page': 'service_requests',
         'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
-        'service_request_data': service_request_data, # Pass the serializable data
+        'service_request_data_json': json.dumps(service_request_data_dict), # Pass as JSON string
     })
 
 @login_required
@@ -324,7 +360,7 @@ def submit_review(request, service_request_id):
     # Check if review already exists
     if Review.objects.filter(service_request=service_request).exists():
         messages.warning(request, 'You have already submitted a review for this service request.')
-        return redirect('service_request_detail', pk=service_request_id)
+        return redirect('core:service_request_detail', pk=service_request_id)
     
     if request.method == 'POST':
         form = ReviewForm(request.POST)
@@ -341,7 +377,7 @@ def submit_review(request, service_request_id):
             mechanic.save()
             
             messages.success(request, 'Thank you! Your review has been submitted successfully.')
-            return redirect('service_request_detail', pk=service_request_id)
+            return redirect('core:service_request_detail', pk=service_request_id)
     else:
         form = ReviewForm()
     
@@ -363,22 +399,28 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 @login_required
 def find_nearby_mechanics(request, service_request_id):
     service_request = get_object_or_404(ServiceRequest, pk=service_request_id)
+
+    # Ensure service request has valid coordinates
+    if service_request.latitude is None or service_request.longitude is None:
+        messages.error(request, 'Service request location is not valid. Cannot find nearby mechanics.')
+        return redirect('core:service_request_detail', pk=service_request_id)
+
     nearby_mechanics = []
-    all_mechanics = Mechanic.objects.filter(available=True)
+    # Filter mechanics to only include those with valid latitude and longitude
+    all_mechanics = Mechanic.objects.filter(available=True, latitude__isnull=False, longitude__isnull=False)
     
     for mechanic in all_mechanics:
-        if mechanic.latitude and mechanic.longitude:
-            distance = calculate_distance(
-                service_request.latitude,
-                service_request.longitude,
-                mechanic.latitude,
-                mechanic.longitude
-            )
-            if distance <= 50:  # Within 50km radius
-                nearby_mechanics.append({
-                    'mechanic': mechanic,
-                    'distance': round(distance, 2)
-                })
+        distance = calculate_distance(
+            service_request.latitude,
+            service_request.longitude,
+            mechanic.latitude,
+            mechanic.longitude
+        )
+        if distance <= 50:  # Within 50km radius
+            nearby_mechanics.append({
+                'mechanic': mechanic,
+                'distance': round(distance, 2)
+            })
     
     nearby_mechanics.sort(key=lambda x: x['distance'])
     
@@ -439,7 +481,8 @@ def service_history(request):
         
         return render(request, 'service/mechanic_history.html', {
             'service_requests': service_requests,
-            'active_page': 'history'
+            'active_page': 'history',
+            'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY # Pass API key
         })
     else:
         # Get all service requests for the regular user
@@ -449,7 +492,8 @@ def service_history(request):
         
         return render(request, 'service/history.html', {
             'service_requests': service_requests,
-            'active_page': 'history'
+            'active_page': 'history',
+            'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY # Pass API key
         })
 
 @login_required
@@ -473,10 +517,10 @@ def vehicles(request):
             
             vehicle = Vehicle.objects.create(**vehicle_data)
             messages.success(request, 'Vehicle added successfully!')
-            return redirect('vehicles')
+            return redirect('core:vehicles')
         except Exception as e:
             messages.error(request, f'Error adding vehicle: {str(e)}')
-            return redirect('vehicles')
+            return redirect('core:vehicles')
     
     # Get all vehicles for the current user
     vehicles = Vehicle.objects.filter(user=request.user)
@@ -534,7 +578,7 @@ def profile(request):
 @login_required
 def service_requests(request):
     if not hasattr(request.user, 'mechanic'):
-        return redirect('dashboard')
+        return redirect('core:dashboard')
     
     pending_requests = ServiceRequest.objects.filter(status='PENDING')
     active_requests = ServiceRequest.objects.filter(mechanic=request.user.mechanic).exclude(status='COMPLETED')
@@ -551,7 +595,7 @@ def service_requests(request):
 @login_required
 def mechanic_schedule(request):
     if not request.user.is_mechanic:
-        return redirect('dashboard')
+        return redirect('core:dashboard')
         
     mechanic = request.user.mechanic
     service_requests = ServiceRequest.objects.filter(mechanic=mechanic)
@@ -581,7 +625,7 @@ def mechanic_schedule(request):
 @login_required
 def mechanic_earnings(request):
     if not request.user.is_mechanic:
-        return redirect('dashboard')
+        return redirect('core:dashboard')
     
     mechanic = request.user.mechanic
     today = timezone.now()
@@ -688,7 +732,7 @@ def mechanic_earnings(request):
 @login_required
 def mechanic_reviews(request):
     if not request.user.is_mechanic:
-        return redirect('dashboard')
+        return redirect('core:dashboard')
     
     # Get reviews through service requests
     reviews = Review.objects.filter(
@@ -762,7 +806,7 @@ def service_payment(request, service_id):
             messages.success(request, 'Payment completed successfully!')
         
         payment.save()
-        return redirect('service_request_detail', pk=service_id)
+        return redirect('core:service_request_detail', pk=service_id)
 
     context = {
         'service_request': service_request,
@@ -778,14 +822,14 @@ def service_payment(request, service_id):
 def confirm_cash_payment(request, payment_id):
     if not request.user.is_mechanic:
         messages.error(request, 'Only mechanics can confirm cash payments.')
-        return redirect('dashboard')
+        return redirect('core:dashboard')
 
     payment = get_object_or_404(Payment, id=payment_id)
     service_request = payment.service_request
 
     if service_request.mechanic.user != request.user:
         messages.error(request, 'You can only confirm payments for your own services.')
-        return redirect('dashboard')
+        return redirect('core:dashboard')
 
     if request.method == 'POST':
         payment.payment_status = 'PAID'
@@ -798,7 +842,7 @@ def confirm_cash_payment(request, payment_id):
             payment=payment
         )
         messages.success(request, 'Cash payment confirmed successfully!')
-        return redirect('service_request_detail', pk=service_request.id)
+        return redirect('core:service_request_detail', pk=service_request.id)
 
     return render(request, 'service/confirm_cash_payment.html', {
         'payment': payment,
@@ -815,7 +859,7 @@ def payment_receipt(request, payment_id):
     if not (request.user == service_request.user or 
             (hasattr(request.user, 'mechanic') and service_request.mechanic == request.user.mechanic)):
         messages.error(request, 'You do not have permission to view this receipt.')
-        return redirect('dashboard')
+        return redirect('core:dashboard')
 
     return render(request, 'service/payment_receipt.html', {
         'payment': payment,
@@ -837,12 +881,12 @@ def payment_gateway(request, service_id):
         }
         return render(request, 'service/payment_gateway.html', context)
     
-    return redirect('service_request_detail', pk=service_id)
+    return redirect('core:service_request_detail', pk=service_id)
 
 @login_required
 def process_payment(request, service_id):
     if request.method != 'POST':
-        return redirect('service_request_detail', pk=service_id)
+        return redirect('core:service_request_detail', pk=service_id)
         
     service_request = get_object_or_404(ServiceRequest, id=service_id)
     payment = get_object_or_404(Payment, service_request=service_request)
@@ -879,7 +923,7 @@ def process_payment(request, service_id):
     )
     
     messages.success(request, 'Payment processed successfully!')
-    return redirect('service_request_detail', pk=service_id)
+    return redirect('core:service_request_detail', pk=service_id)
 
 @login_required
 def assign_mechanic(request, service_request_id, mechanic_id):
@@ -888,11 +932,11 @@ def assign_mechanic(request, service_request_id, mechanic_id):
 
     if request.user != service_request.user:
         messages.error(request, 'You do not have permission to assign a mechanic to this request.')
-        return redirect('dashboard')
+        return redirect('core:dashboard')
 
     if service_request.status != 'PENDING':
         messages.warning(request, 'This service request is no longer pending.')
-        return redirect('service_request_detail', pk=service_request_id)
+        return redirect('core:service_request_detail', pk=service_request_id)
 
     service_request.mechanic = mechanic
     service_request.status = 'ACCEPTED'
@@ -907,7 +951,7 @@ def assign_mechanic(request, service_request_id, mechanic_id):
         service_request=service_request
     )
     messages.success(request, f'Mechanic {mechanic.user.get_full_name()} assigned to your request!')
-    return redirect('service_request_detail', pk=service_request_id)
+    return redirect('core:service_request_detail', pk=service_request_id)
 
 
 @login_required
@@ -958,6 +1002,13 @@ def update_mechanic_location(request):
             mechanic.latitude = latitude
             mechanic.longitude = longitude
             mechanic.save()
+
+            # Save location to history
+            LocationHistory.objects.create(
+                mechanic=mechanic,
+                latitude=latitude,
+                longitude=longitude
+            )
 
             # Update active service requests for this mechanic
             active_service_requests = ServiceRequest.objects.filter(
@@ -1014,3 +1065,21 @@ def login_view(request):
     else:
         form = AuthenticationForm()
     return render(request, 'registration/login.html', {'form': form})
+
+from .models import LocationHistory
+
+@login_required
+def get_location_history(request, mechanic_id):
+    mechanic = get_object_or_404(Mechanic, pk=mechanic_id)
+    location_history = LocationHistory.objects.filter(mechanic=mechanic).order_by('-timestamp')
+    data = {
+        'success': True,
+        'location_history': [
+            {
+                'latitude': lh.latitude,
+                'longitude': lh.longitude,
+                'timestamp': lh.timestamp.isoformat()
+            } for lh in location_history
+        ]
+    }
+    return JsonResponse(data)

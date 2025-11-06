@@ -347,6 +347,13 @@
                     Your Location
                 </h2>
                 
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="locationSearch" placeholder="Search for a location...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchLocationBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                
                 <button type="button" class="detect-location" id="detectLocation">
                     <i class="fas fa-crosshairs"></i>
                     <span>Get My Live Location</span>
@@ -391,6 +398,7 @@
     let marker;
     let defaultLocation = { lat: 12.9716, lng: 77.5946 }; // Default to Bangalore
     let locationObtained = false;
+    let autocomplete;
 
     function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
@@ -413,6 +421,39 @@
                 strokeWeight: 3,
                 scale: 10,
             },
+        });
+
+        // Initialize autocomplete
+        const input = document.getElementById('locationSearch');
+        autocomplete = new google.maps.places.Autocomplete(input);
+        autocomplete.bindTo('bounds', map);
+
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                window.alert("No details available for input: '" + place.name + "'");
+                return;
+            }
+
+            const placeLat = place.geometry.location.lat();
+            const placeLng = place.geometry.location.lng();
+
+            if (!isNaN(placeLat) && !isNaN(placeLng)) {
+                if (place.geometry.viewport) {
+                    map.fitBounds(place.geometry.viewport);
+                } else {
+                    map.setCenter(place.geometry.location);
+                    map.setZoom(17);
+                }
+                marker.setPosition(place.geometry.location);
+                updateLocationFields(placeLat, placeLng);
+                reverseGeocode(placeLat, placeLng);
+                locationObtained = true;
+                document.querySelector('.submit-btn').disabled = false;
+            } else {
+                console.error("Invalid coordinates from Google Places Autocomplete:", place.geometry.location);
+                window.alert("Invalid location selected. Please try again.");
+            }
         });
 
         detectCurrentLocation();
@@ -443,18 +484,28 @@
                         lng: position.coords.longitude
                     };
 
-                    map.setCenter(pos);
-                    map.setZoom(16);
-                    marker.setPosition(pos);
+                    if (!isNaN(pos.lat) && !isNaN(pos.lng)) {
+                        map.setCenter(pos);
+                        map.setZoom(16);
+                        marker.setPosition(pos);
 
-                    updateLocationFields(pos.lat, pos.lng);
-                    reverseGeocode(pos.lat, pos.lng);
+                        updateLocationFields(pos.lat, pos.lng);
+                        reverseGeocode(pos.lat, pos.lng);
 
-                    detectBtn.disabled = false;
-                    detectBtn.innerHTML = '<i class="fas fa-crosshairs"></i><span>Refresh Live Location</span>';
-                    locationSuccess.style.display = 'block';
-                    locationObtained = true;
-                    submitBtn.disabled = false;
+                        detectBtn.disabled = false;
+                        detectBtn.innerHTML = '<i class="fas fa-crosshairs"></i><span>Refresh Live Location</span>';
+                        locationSuccess.style.display = 'block';
+                        locationObtained = true;
+                        submitBtn.disabled = false;
+                    } else {
+                        console.error('Geolocation returned invalid coordinates:', pos);
+                        detectBtn.disabled = false;
+                        detectBtn.innerHTML = '<i class="fas fa-crosshairs"></i><span>Try Again</span>';
+                        locationError.style.display = 'block';
+                        locationObtained = false;
+                        submitBtn.disabled = true;
+                        window.alert("Unable to get valid live location. Please try again.");
+                    }
                 },
                 (error) => {
                     console.error('Error getting location:', error);
@@ -500,6 +551,30 @@
         // when the API is loaded.
 
         document.getElementById('detectLocation').addEventListener('click', detectCurrentLocation);
+
+        document.getElementById('searchLocationBtn').addEventListener('click', () => {
+            const geocoder = new google.maps.Geocoder();
+            const address = document.getElementById('locationSearch').value;
+            geocoder.geocode({ 'address': address }, (results, status) => {
+                if (status === 'OK') {
+                    const geoLat = results[0].geometry.location.lat();
+                    const geoLng = results[0].geometry.location.lng();
+                    if (!isNaN(geoLat) && !isNaN(geoLng)) {
+                        map.setCenter(results[0].geometry.location);
+                        marker.setPosition(results[0].geometry.location);
+                        updateLocationFields(geoLat, geoLng);
+                        document.getElementById('location').value = results[0].formatted_address;
+                        locationObtained = true;
+                        document.querySelector('.submit-btn').disabled = false;
+                    } else {
+                        console.error("Invalid coordinates from Geocoder search:", results[0].geometry.location);
+                        alert('Geocode was not successful for the following reason: Invalid coordinates.');
+                    }
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        });
 
         // Attachment functionality for "Describe the Issue"
         const addAttachmentBtnIssue = document.getElementById('addAttachmentBtnIssue');

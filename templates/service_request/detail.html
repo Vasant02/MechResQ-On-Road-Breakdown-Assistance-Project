@@ -55,14 +55,33 @@
                             <p class="mb-2"><i class="fas fa-map-marker-alt me-2 text-muted"></i><strong>Location:</strong><br>{{ service_request.location }}</p>
                         </div>
                         <div id="map" style="height: 400px; width: 100%;"></div>
-                        <script id="service_request_json" type="application/json">
-                            {{ service_request_data|json_script:"service_request_json" }}
-                        </script>
                         <div id="route-info" class="mt-3 p-3 bg-white rounded border" style="display: none;">
                             <h6 class="text-primary mb-2"><i class="fas fa-route me-2"></i>Route Information</h6>
                             <p class="mb-1"><strong>Distance:</strong> <span id="route-distance"></span></p>
                             <p class="mb-0"><strong>Estimated Time:</strong> <span id="route-eta"></span></p>
                         </div>
+                    </div>
+
+                    <div class="mb-4 bg-light p-4 rounded-3">
+                        <h5 class="card-title d-flex align-items-center border-bottom pb-3 mb-3">
+                            <i class="fas fa-dollar-sign me-2 text-primary"></i>Cost Information
+                        </h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <p class="mb-2"><i class="fas fa-file-invoice-dollar me-2 text-muted"></i><strong>Estimated Cost:</strong><br>₹{{ service_request.estimated_cost }}</p>
+                            </div>
+                            {% if service_request.final_cost %}
+                            <div class="col-md-6">
+                                <p class="mb-2"><i class="fas fa-money-bill-wave me-2 text-muted"></i><strong>Final Cost:</strong><br>₹{{ service_request.final_cost }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if service_request.notes %}
+                        <div class="mt-3">
+                            <p class="mb-2"><i class="fas fa-sticky-note me-2 text-muted"></i><strong>Mechanic Notes:</strong></p>
+                            <div class="p-3 bg-white rounded border">{{ service_request.notes }}</div>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-4 bg-light p-4 rounded-3">
@@ -124,7 +143,7 @@
                                             <h5 class="d-flex align-items-center mb-3">
                                                 <i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Payment Required
                                             </h5>
-                                            <form method="POST" action="{% url 'payment_gateway' service_request.id %}" class="payment-form" id="paymentForm">
+                                            <form method="POST" action="{% url 'core:payment_gateway' service_request.id %}" class="payment-form" id="paymentForm">
                                                 {% csrf_token %}
                                                 <div class="mb-3">
                                                     <label for="service_charge" class="form-label">Service Charge (₹)</label>
@@ -253,7 +272,7 @@
                                                     {% endif %}
                                                 </table>
                                             </div>
-                                            <a href="{% url 'payment_receipt' service_request.payment.id %}" class="btn btn-success btn-lg w-100 shadow-sm hover-scale">
+                                            <a href="{% url 'core:payment_receipt' service_request.payment.id %}" class="btn btn-success btn-lg w-100 shadow-sm hover-scale">
                                                 <i class="fas fa-file-invoice me-2"></i> View Receipt
                                             </a>
                                         </div>
@@ -272,7 +291,7 @@
                                 </a>
                             {% endif %}
                             {% if not user.is_mechanic and service_request.status == 'COMPLETED' and service_request.payment.payment_status == 'PAID' and not service_request.review %}
-                                <a href="{% url 'submit_review' service_request.id %}" class="btn btn-primary flex-grow-1 shadow-sm hover-scale">
+                                <a href="{% url 'core:submit_review' service_request.id %}" class="btn btn-primary flex-grow-1 shadow-sm hover-scale">
                                     <i class="fas fa-star me-2"></i> Leave Review
                                 </a>
                             {% endif %}
@@ -350,10 +369,12 @@
     let directionsRenderer;
     let mechanicMarker = null;
     let serviceLocationMarker = null;
-    const serviceRequestJson = document.getElementById('service_request_json');
-    let currentServiceRequestData = JSON.parse(serviceRequestJson.textContent);
+    let currentServiceRequestData; // Declare globally
 
     function initMap() {
+        // Directly embed the JSON data into a JavaScript variable
+        currentServiceRequestData = JSON.parse('{{ service_request_data_json|safe }}');
+
         const serviceLat = parseFloat(currentServiceRequestData.latitude);
         const serviceLng = parseFloat(currentServiceRequestData.longitude);
 
@@ -388,44 +409,87 @@
         const serviceLat = parseFloat(currentServiceRequestData.latitude);
         const serviceLng = parseFloat(currentServiceRequestData.longitude);
 
-        if (currentServiceRequestData.mechanic && (currentServiceRequestData.status === 'ACCEPTED' || currentServiceRequestData.status === 'IN_PROGRESS')) {
-            const mechanicLocation = { lat: mechanicLat, lng: mechanicLng };
-            const serviceLocation = { lat: serviceLat, lng: serviceLng };
-
-            if (!mechanicMarker) {
-                mechanicMarker = new google.maps.Marker({
-                    position: mechanicLocation,
-                    map: map,
-                    title: 'Mechanic Location',
-                    icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                    }
-                });
-            } else {
-                mechanicMarker.setPosition(mechanicLocation);
+        // Check if service request location is valid
+        if (isNaN(serviceLat) || isNaN(serviceLng)) {
+            console.error("Service request location is invalid (NaN). Cannot render map or directions.");
+            if (serviceLocationMarker) {
+                serviceLocationMarker.setMap(null);
+                serviceLocationMarker = null;
             }
+            if (mechanicMarker) {
+                mechanicMarker.setMap(null);
+                mechanicMarker = null;
+            }
+            directionsRenderer.setDirections({ routes: [] });
+            document.getElementById('route-info').style.display = 'none';
+            return; // Exit if service location is invalid
+        }
 
-            // Request directions
-            directionsService.route(
-                {
-                    origin: mechanicLocation,
-                    destination: serviceLocation,
-                    travelMode: google.maps.TravelMode.DRIVING,
-                },
-                (response, status) => {
-                    if (status === "OK") {
-                        directionsRenderer.setDirections(response);
-                        const route = response.routes[0].legs[0];
-                        document.getElementById('route-distance').textContent = route.distance.text;
-                        document.getElementById('route-eta').textContent = route.duration.text;
-                        document.getElementById('route-info').style.display = 'block';
-                    } else {
-                        console.error("Directions request failed due to " + status);
-                        directionsRenderer.setDirections({ routes: [] }); // Clear route
-                        document.getElementById('route-info').style.display = 'none';
-                    }
+        // Update service location marker if it exists, or create it
+        if (!serviceLocationMarker) {
+            serviceLocationMarker = new google.maps.Marker({
+                position: { lat: serviceLat, lng: serviceLng },
+                map: map,
+                title: 'Service Location',
+                icon: {
+                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
                 }
-            );
+            });
+        } else {
+            serviceLocationMarker.setPosition({ lat: serviceLat, lng: serviceLng });
+        }
+
+
+        if (currentServiceRequestData.mechanic && (currentServiceRequestData.status === 'ACCEPTED' || currentServiceRequestData.status === 'IN_PROGRESS')) {
+            // Only proceed if mechanic coordinates are valid
+            if (!isNaN(mechanicLat) && !isNaN(mechanicLng)) {
+                const mechanicLocation = { lat: mechanicLat, lng: mechanicLng };
+                const serviceLocation = { lat: serviceLat, lng: serviceLng };
+
+                if (!mechanicMarker) {
+                    mechanicMarker = new google.maps.Marker({
+                        position: mechanicLocation,
+                        map: map,
+                        title: 'Mechanic Location',
+                        icon: {
+                            url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                        }
+                    });
+                } else {
+                    mechanicMarker.setPosition(mechanicLocation);
+                }
+
+                // Request directions
+                directionsService.route(
+                    {
+                        origin: mechanicLocation,
+                        destination: serviceLocation,
+                        travelMode: google.maps.TravelMode.DRIVING,
+                    },
+                    (response, status) => {
+                        if (status === "OK") {
+                            directionsRenderer.setDirections(response);
+                            const route = response.routes[0].legs[0];
+                            document.getElementById('route-distance').textContent = route.distance.text;
+                            document.getElementById('route-eta').textContent = route.duration.text;
+                            document.getElementById('route-info').style.display = 'block';
+                        } else {
+                            console.error("Directions request failed due to " + status);
+                            directionsRenderer.setDirections({ routes: [] }); // Clear route
+                            document.getElementById('route-info').style.display = 'none';
+                        }
+                    }
+                );
+            } else {
+                // Mechanic coordinates are invalid, clear mechanic marker and route
+                if (mechanicMarker) {
+                    mechanicMarker.setMap(null);
+                    mechanicMarker = null;
+                }
+                directionsRenderer.setDirections({ routes: [] }); // Clear route
+                document.getElementById('route-info').style.display = 'none';
+                console.warn("Mechanic coordinates are invalid (NaN). Cannot display mechanic location or route.");
+            }
         } else {
             // Clear mechanic marker and route if not applicable
             if (mechanicMarker) {

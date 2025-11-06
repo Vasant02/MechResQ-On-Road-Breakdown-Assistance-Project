@@ -287,31 +287,38 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') // Get CSRF token
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ message: message }),
+                credentials: 'same-origin' // Ensure cookies are sent
             })
-            .then(response => response.json())
-            .then(data => {
-                // Remove loading indicator
-                const loadingElem = document.getElementById('loadingMessage');
-                if (loadingElem) {
-                    loadingElem.remove();
+            .then(response => {
+                if (!response.ok) {
+                    // Try to parse error from JSON response
+                    return response.json().then(err => {
+                        throw new Error(err.error || `HTTP error! Status: ${response.status}`);
+                    }).catch(() => {
+                        // Fallback for non-JSON responses
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    });
                 }
+                return response.json();
+            })
+            .then(data => {
+                const loadingElem = document.getElementById('loadingMessage');
+                if (loadingElem) loadingElem.remove();
+
                 if (data.response) {
                     appendMessage(data.response, 'ai');
                 } else if (data.error) {
-                    appendMessage('Error: ' + data.error, 'ai');
+                    appendMessage(`Error: ${data.error}`, 'ai');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                // Remove loading indicator
                 const loadingElem = document.getElementById('loadingMessage');
-                if (loadingElem) {
-                    loadingElem.remove();
-                }
-                appendMessage('Sorry, something went wrong. Please try again.', 'ai');
+                if (loadingElem) loadingElem.remove();
+                appendMessage(error.message || 'Sorry, something went wrong. Please try again.', 'ai');
             });
         }
 

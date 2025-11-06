@@ -315,15 +315,24 @@
                 return;
             }
 
-            if (place.geometry.viewport) {
-                map.fitBounds(place.geometry.viewport);
-            } else {
-                map.setCenter(place.geometry.location);
-                map.setZoom(17);
+            if (place.geometry) {
+                const placeLat = place.geometry.location.lat();
+                const placeLng = place.geometry.location.lng();
+
+                if (!isNaN(placeLat) && !isNaN(placeLng)) {
+                    if (place.geometry.viewport) {
+                        map.fitBounds(place.geometry.viewport);
+                    } else {
+                        map.setCenter(place.geometry.location);
+                        map.setZoom(17);
+                    }
+                    marker.setPosition(place.geometry.location);
+                    latInput.value = placeLat.toFixed(6);
+                    lngInput.value = placeLng.toFixed(6);
+                } else {
+                    console.error("Invalid coordinates from Google Places Autocomplete:", place.geometry.location);
+                }
             }
-            marker.setPosition(place.geometry.location);
-            latInput.value = place.geometry.location.lat().toFixed(6);
-            lngInput.value = place.geometry.location.lng().toFixed(6);
         });
 
         // Update map when lat/lng inputs change

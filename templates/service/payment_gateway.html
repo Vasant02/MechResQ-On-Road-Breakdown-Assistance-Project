@@ -78,7 +78,7 @@
                     </div>
                     {% endif %}
 
-                    <form method="POST" action="{% url 'process_payment' service_request.id %}" id="processPaymentForm">
+                    <form method="POST" action="{% url 'core:process_payment' service_request.id %}" id="processPaymentForm">
                         {% csrf_token %}
                         <input type="hidden" name="payment_method" value="{{ payment_method }}">
                         <input type="hidden" name="service_charge" value="{{ service_charge }}">
@@ -90,7 +90,7 @@
                     </form>
 
                     <div class="text-center mt-4">
-                        <a href="{% url 'service_request_detail' service_request.id %}" class="text-decoration-none">
+                        <a href="{% url 'core:service_request_detail' service_request.id %}" class="text-decoration-none">
                             <i class="fas fa-arrow-left me-1"></i>Cancel Payment
                         </a>
                     </div>

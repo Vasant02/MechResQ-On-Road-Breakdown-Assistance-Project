@@ -170,4 +170,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY')
 OPENROUTER_API_KEY = env('OPENROUTER_API_KEY')
+CHATBOT_MODEL = env('CHATBOT_MODEL', default='google/gemini-pro')
 # OPENAI_API_KEY = env('OPENAI_API_KEY') # Removed as per user's clarification

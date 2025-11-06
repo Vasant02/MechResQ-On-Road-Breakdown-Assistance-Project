@@ -57,4 +57,5 @@ urlpatterns = [
     path('service/<int:service_id>/payment-gateway/', views.payment_gateway, name='payment_gateway'),
     path('service/<int:service_id>/process-payment/', views.process_payment, name='process_payment'),
     path('service-request/<int:service_request_id>/assign-mechanic/<int:mechanic_id>/', views.assign_mechanic, name='assign_mechanic'),
+    path('api/mechanic/<int:mechanic_id>/location-history/', views.get_location_history, name='get_location_history'),
 ]
