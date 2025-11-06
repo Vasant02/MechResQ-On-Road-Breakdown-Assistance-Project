@@ -1,3 +1,18 @@
+# Ignore service account keys and local secrets
+serviceAccountKey.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# SQLite DB
+db.sqlite3
+
+# Environment files
+.env
+env/
+venv/
+/.venv/
 # Python
 __pycache__/
 *.py[cod]
