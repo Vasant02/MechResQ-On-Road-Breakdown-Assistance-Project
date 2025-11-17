@@ -44,10 +44,14 @@
                 <h1 class="h3 mb-0" style="color: var(--text-light);">Welcome back, {{ request.user.get_full_name }}</h1>
                 <p class="text-muted mb-0" style="color: var(--text-dark);">Here's what's happening with your service requests</p>
             </div>
-            <a href="{% url 'core:create_service_request' %}" class="btn btn-primary d-flex align-items-center gap-2">
+            <a href="{% url 'core:create_service_request' %}" class="btn btn-primary d-flex align-items-center gap-2 me-2">
                 <i class="fas fa-plus"></i>
                 New Service Request
             </a>
+            <button id="sosCallButton" class="btn btn-danger d-flex align-items-center gap-2">
+                <i class="fas fa-phone-alt"></i>
+                SOS Call
+            </button>
         </div>
 
 
@@ -196,6 +200,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const filterButtons = document.querySelectorAll('.filter-button');
     const requestCards = document.querySelectorAll('.service-request-card');
+    const sosCallButton = document.getElementById('sosCallButton');
 
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -216,6 +221,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    if (sosCallButton) {
+        sosCallButton.addEventListener('click', () => {
+            const phoneNumber = '7411332462';
+            window.location.href = `tel:${phoneNumber}`;
+        });
+    }
 });
 </script>
 {% endblock %}

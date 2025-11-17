@@ -3,7 +3,7 @@
     /* Colors */
     --primary-color: #8bc34a; /* Light Green */
     --primary-color-rgb: 139, 195, 74; /* RGB for primary color */
-    --secondary-color: #9e9e9e; /* Gray */
+    --secondary-color: #4CAF50; /* Darker Green */
     --accent-color: #689f38; /* Darker Green for highlights */
     --success-color: #4caf50; /* Green for success states */
     --success-dark-shade: #388e3c; /* Darker green for gradients */
@@ -11,14 +11,14 @@
     --warning-dark-shade: #fbc02d; /* Darker yellow for gradients */
     --danger-color: #f44336; /* Red for danger states */
     --danger-color-rgb: 244, 67, 54; /* RGB for danger color */
-    --background-dark: #ffffff; /* White */
-    --background-medium: #f5f5f5; /* Light Gray */
-    --background-light: #e0e0e0; /* Lighter Gray */
-    --text-light: #212121; /* Dark Gray for text on light background */
-    --text-dark: #616161; /* Medium Gray for secondary text */
-    --border-color: #bdbdbd; /* Light border */
-    --shadow-dark: rgba(0, 0, 0, 0.1); /* Lighter shadow */
-    --shadow-light: rgba(255, 255, 255, 0.8); /* White shadow for neumorphic effect */
+    --background-dark: #1A361A; /* Very dark green background */
+    --background-medium: #2E4F2E; /* Medium dark green background */
+    --background-light: #426942; /* Light dark green background */
+    --text-light: #e0e0e0; /* Light text for dark background */
+    --text-dark: #b0b0b0; /* Medium light text for secondary text */
+    --border-color: #5A7D5A; /* Dark green border */
+    --shadow-dark: rgba(0, 0, 0, 0.5); /* Darker shadow for dark background */
+    --shadow-light: rgba(255, 255, 255, 0.1); /* Lighter shadow for dark background */
 
     /* Typography */
     --font-family-sans-serif: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -42,48 +42,6 @@
     --transition-timing: ease-in-out;
 }
 
-/* Dark Mode Variables */
-[data-theme="dark"] {
-    --primary-color: #66bb6a; /* Slightly lighter green for dark mode */
-    --primary-color-rgb: 102, 187, 106;
-    --secondary-color: #757575; /* Darker gray */
-    --accent-color: #43a047; /* Darker green */
-    --success-color: #66bb6a;
-    --success-dark-shade: #388e3c;
-    --warning-color: #ffee58;
-    --warning-dark-shade: #fbc02d;
-    --danger-color: #ef5350;
-    --danger-color-rgb: 239, 83, 80;
-    --background-dark: #121212; /* Dark background */
-    --background-medium: #1e1e1e; /* Slightly lighter dark background */
-    --background-light: #2c2c2c; /* Even lighter dark background */
-    --text-light: #e0e0e0; /* Light gray text on dark background */
-    --text-dark: #bdbdbd; /* Lighter gray for secondary text */
-    --border-color: #424242; /* Darker border */
-    --shadow-dark: rgba(0, 0, 0, 0.5); /* Darker shadow */
-    --shadow-light: rgba(255, 255, 255, 0.05); /* Subtle white shadow for dark neumorphic */
-
-    /* Navbar specific styles for dark mode */
-    .navbar-nav .nav-link {
-        color: #f8f9fa !important; /* Brighter white for links */
-    }
-    .navbar-nav .nav-link i {
-        color: #f8f9fa !important; /* Brighter white for icons */
-    }
-    .navbar-nav .nav-link:hover {
-        background-color: var(--background-light); /* Keep existing hover background */
-        color: var(--primary-color) !important; /* Primary color on hover */
-    }
-    .navbar-nav .nav-link:hover i {
-        color: var(--primary-color) !important; /* Primary color on hover */
-    }
-    .navbar-nav .nav-link.active {
-        color: var(--text-light) !important; /* Ensure active link text is visible */
-    }
-    .navbar-nav .nav-link.active i {
-        color: var(--text-light) !important; /* Ensure active link icon is visible */
-    }
-}
 
 /* Base Body Styles */
 body {
@@ -154,7 +112,7 @@ a:hover {
 /* Primary Button */
 .btn-primary {
     background-color: var(--primary-color);
-    color: var(--text-light);
+    color: #ffffff; /* Ensure white text on primary buttons */
 }
 
 .btn-primary:hover {
@@ -163,8 +121,8 @@ a:hover {
 
 /* Secondary Button */
 .btn-secondary {
-    background-color: var(--background-medium); /* Light gray background */
-    color: var(--text-light); /* Dark text */
+    background-color: var(--background-medium); /* Darker background for secondary */
+    color: var(--text-light); /* Light text */
 }
 
 .btn-secondary:hover {
@@ -174,7 +132,7 @@ a:hover {
 /* Danger Button */
 .btn-danger {
     background-color: var(--danger-color);
-    color: var(--text-light);
+    color: #ffffff; /* Ensure white text on danger buttons */
 }
 
 .btn-danger:hover {
@@ -183,13 +141,13 @@ a:hover {
 
 /* Input Field Styles */
 .form-control {
-    background-color: var(--background-medium); /* Light gray background */
-    color: var(--text-light); /* Dark text */
+    background-color: var(--background-medium); /* Darker background for form control */
+    color: var(--text-light); /* Light text */
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     padding: var(--spacing-sm);
     transition: all var(--transition-speed) var(--transition-timing);
-    box-shadow: inset 2px 2px 5px var(--shadow-light), inset -2px -2px 5px var(--shadow-dark); /* Adjusted for light neumorphic */
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light); /* Adjusted for dark neumorphic */
 }
 
 .form-control:focus {

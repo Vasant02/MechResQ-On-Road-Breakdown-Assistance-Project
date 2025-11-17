@@ -1,5 +1,6 @@
 from django.urls import path, reverse_lazy
 from . import views, notification_views
+from .views import sos_call
 from django.contrib.auth import views as auth_views
 
 app_name = 'core'
@@ -53,4 +54,5 @@ urlpatterns = [
     path('api/mechanic/<int:mechanic_id>/location-history/', views.get_location_history, name='get_location_history'),
     path('service/<int:service_id>/waiting-for-mechanic/', views.waiting_for_mechanic, name='waiting_for_mechanic'),
     path('custom-map/', views.custom_map_view, name='custom_map_view'),
+    path('sos/call/', sos_call, name='sos_call'),
 ]

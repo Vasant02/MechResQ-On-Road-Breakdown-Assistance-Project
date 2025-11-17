@@ -158,7 +158,10 @@ def password_reset_new_password(request):
             new_password = form.cleaned_data['new_password']
             email = request.session.get('email')
             try:
-                user = User.objects.get(email=email)
+                user = User.objects.filter(email=email).first()
+                if not user:
+                    messages.error(request, "User not found for password reset. Please restart the process.")
+                    return redirect('core:password_reset')
                 user.set_password(new_password)
                 user.save()
                 Notification.create_password_changed_notification(user)
@@ -1566,3 +1569,7 @@ def logout_view(request):
         messages.success(request, "Logout Successful — You’ve logged out safely. See you again soon!")
     logout(request)
     return redirect('core:login')
+
+def sos_call(request):
+    phone = request.user.phone_number if request.user.is_authenticated else request.GET.get('number','')
+    return render(request, 'core/sos_call.html', {'phone': phone})

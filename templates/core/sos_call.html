@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SOS Call</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#1a362d; color:#fff; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;}
+    .card { width:95%; max-width:420px; background:#2d4d42; border-radius:12px; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,.5);}
+    input[type=tel] { width: calc(100% - 24px); padding:12px; border-radius:8px; border:1px solid #4a6b60; background:#223d34; color:#fff; font-size:18px; box-sizing: border-box; }
+    .count { font-size:42px; text-align:center; margin:18px 0; }
+    .row { display:flex; gap:10px; }
+    button { flex:1; padding:12px; border-radius:8px; font-size:16px; border:none; }
+    .start { background:#4CAF50; color:white; } /* Green */
+    .cancel { background:#8BC34A; color:white; } /* Lighter Green */
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Emergency Call</h2>
+    <p>Enter the phone number to call. After starting, call will open the phone dialer after countdown.</p>
+
+    <label>Number</label>
+    <input id="number" type="tel" placeholder="+911234567890" inputmode="tel" pattern="[0-9+ ]+" value="{{ phone }}" />
+
+    <div class="count" id="countDisplay" style="display:none;">5</div>
+
+    <div class="row" style="margin-top:12px;">
+      <button id="start" class="start">Start Countdown</button>
+      <button id="cancel" class="cancel" style="display:none;">Cancel</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const startBtn = document.getElementById('start');
+  const cancelBtn = document.getElementById('cancel');
+  const numInput = document.getElementById('number');
+  const countDisplay = document.getElementById('countDisplay');
+
+  let timerId = null;
+  let countdown = 5; // seconds, change as needed
+  let beep = null;
+
+  function playBeep() {
+    // small beep using WebAudio API (optional)
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880;
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      g.gain.setValueAtTime(0.1, ctx.currentTime);
+      setTimeout(()=>{ o.stop(); ctx.close(); }, 120);
+    } catch(e) {}
+  }
+
+  function startCountdown() {
+    const raw = (numInput.value || '').trim();
+    if (!raw) { alert('Enter a phone number'); return; }
+    // optionally validate number with regex
+    let seconds = countdown;
+    countDisplay.textContent = seconds;
+    countDisplay.style.display = 'block';
+    startBtn.style.display = 'none';
+    cancelBtn.style.display = 'inline-block';
+
+    timerId = setInterval(() => {
+      seconds--;
+      if (seconds > 0) {
+        countDisplay.textContent = seconds;
+        playBeep();
+      } else {
+        clearInterval(timerId);
+        countDisplay.textContent = 'Calling...';
+        // open the dialer. This will open device dialer; user may need to confirm.
+        const telUrl = 'tel:' + encodeURIComponent(raw);
+        // For mobile browsers:
+        window.location.href = telUrl;
+
+        // If you want to open a new window instead of redirect:
+        // window.open(telUrl, '_self');
+
+        // fallback: show message if browser blocks redirection
+        setTimeout(()=> {
+          countDisplay.textContent = 'If the call did not start, please manually dial the number.';
+        }, 1500);
+      }
+    }, 1000);
+  }
+
+  function cancelCountdown() {
+    if (timerId) clearInterval(timerId);
+    timerId = null;
+    countDisplay.style.display = 'none';
+    startBtn.style.display = 'inline-block';
+    cancelBtn.style.display = 'none';
+  }
+
+  startBtn.addEventListener('click', startCountdown);
+  cancelBtn.addEventListener('click', cancelCountdown);
+})();
+</script>
+</body>
+</html>
