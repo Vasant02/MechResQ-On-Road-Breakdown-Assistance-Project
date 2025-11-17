@@ -68,7 +68,11 @@
                             <h5>{{ mechanic_data.mechanic.user.get_full_name }}</h5>
                             <p>Specialization: {{ mechanic_data.mechanic.specialization }}</p>
                             <p class="distance">{{ mechanic_data.distance }} km away</p>
-                            <a href="{% url 'core:assign_mechanic' service_request.id mechanic_data.mechanic.id %}" class="btn btn-sm btn-primary mt-2">Select Mechanic</a>
+                            <button type="button"
+                                    class="btn btn-sm btn-primary mt-2 btn-select-mechanic"
+                                    data-assign-url="{% url 'core:assign_mechanic' service_request.id mechanic_data.mechanic.id %}">
+                                Select Mechanic
+                            </button>
                             <button type="button"
                                     class="btn btn-sm btn-outline-secondary mt-2 ms-2 btn-view-details"
                                     data-mechanic-id="{{ mechanic_data.mechanic.id }}"
@@ -110,6 +114,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Confirm Mechanic Modal -->
+    <div class="modal fade" id="confirmMechanicModal" tabindex="-1" aria-labelledby="confirmMechanicLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmMechanicLabel">Confirm Mechanic</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirmMechanicBody">
+                    <div class="text-center py-3">Loading...</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmMechanicButton">Confirm Mechanic</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -119,6 +142,8 @@
     let serviceRequestMarker;
     let mechanicMarkers = [];
     let placeMarkers = []; // New array for nearby places markers
+    let directionsService;
+    let directionsRenderer;
     let infoWindow;
     let placesService; // New: Google Places Service
 
@@ -126,6 +151,7 @@
         const serviceLat = parseFloat("{{ service_request.latitude }}");
         const serviceLng = parseFloat("{{ service_request.longitude }}");
         const serviceLocation = { lat: serviceLat, lng: serviceLng };
+        window.serviceLocation = serviceLocation;
 
         map = new google.maps.Map(document.getElementById("map"), {
             center: serviceLocation,
@@ -133,6 +159,11 @@
         });
 
         infoWindow = new google.maps.InfoWindow();
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true
+        });
         placesService = new google.maps.places.PlacesService(map); // Initialize Places Service
 
         // Marker for the service request location
@@ -243,6 +274,12 @@
         const detailsTitle = document.getElementById('mechanicDetailsLabel');
         const detailsBody = document.getElementById('mechanicDetailsBody');
 
+        // Confirm mechanic modal wiring
+        const confirmModalEl = document.getElementById('confirmMechanicModal');
+        const confirmModal = new bootstrap.Modal(confirmModalEl);
+        const confirmBody = document.getElementById('confirmMechanicBody');
+        const confirmButton = document.getElementById('confirmMechanicButton');
+
         function renderDetails(data) {
             const availability = data.available ? 'Available' : 'Unavailable';
             const avgRating = (data.average_rating || 0).toFixed(2);
@@ -324,6 +361,54 @@
                         detailsBody.innerHTML = '<div class="text-danger">Failed to load mechanic details.</div>';
                     });
             });
+        });
+
+        // Handle Select Mechanic clicks: draw route + ask for confirmation
+        document.querySelectorAll('.btn-select-mechanic').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const card = this.closest('.mechanic-card');
+                if (!card) return;
+
+                const lat = parseFloat(card.dataset.lat);
+                const lng = parseFloat(card.dataset.lng);
+                const name = card.dataset.name;
+                const distance = card.dataset.distance;
+                const assignUrl = this.dataset.assignUrl;
+
+                if (window.serviceLocation && directionsService && directionsRenderer) {
+                    const request = {
+                        origin: window.serviceLocation,
+                        destination: { lat: lat, lng: lng },
+                        travelMode: google.maps.TravelMode.DRIVING,
+                    };
+
+                    directionsService.route(request, (result, status) => {
+                        if (status === google.maps.DirectionsStatus.OK) {
+                            directionsRenderer.setDirections(result);
+                        } else {
+                            console.warn('Directions request failed:', status);
+                        }
+                    });
+                }
+
+                confirmBody.innerHTML = `
+                    <p class="mb-2"><strong>Mechanic:</strong> ${name}</p>
+                    <p class="mb-2"><strong>Approximate distance:</strong> ${distance} km</p>
+                    <p class="text-muted mb-0">A route from your service location to this mechanic is highlighted on the map. Do you want to confirm this mechanic?</p>
+                `;
+
+                confirmButton.dataset.assignUrl = assignUrl;
+                confirmModal.show();
+            });
+        });
+
+        confirmButton.addEventListener('click', function() {
+            const url = this.dataset.assignUrl;
+            if (url) {
+                window.location.href = url;
+            }
         });
 
         // Handle clicks on mechanic cards to center map on their location

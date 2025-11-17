@@ -20,6 +20,15 @@
       <div class="col-md-6">
         <div class="card">
           <div class="card-body">
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% endfor %}
+            {% endif %}
+
             <h2 class="card-title text-center" style="color: var(--text-light);">Enter OTP</h2>
             <p class="text-center" style="color: var(--text-light);">A One-Time Password (OTP) has been sent to your registered email address. Please enter it below to proceed.</p>
             <form method="post">
@@ -41,25 +50,4 @@
   </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-  $(document).ready(function() {
-    var otpSuccessModal = $('#otpSuccessModal');
-    var modalMessage = $('#modalMessage');
-    var okButton = $('#okButton');
-
-    // Get Django messages and convert to a JavaScript array
-    var djangoMessages = JSON.parse('{{ messages|safe|escapejs }}');
-
-    // If there are messages, display the first one in the modal
-    if (djangoMessages.length > 0) {
-      modalMessage.text(djangoMessages[0]);
-      otpSuccessModal.show();
-    }
-
-    okButton.on('click', function() {
-      otpSuccessModal.hide();
-    });
-  });
-</script>
-{% endblock extra_js %}
+{% block extra_js %}{% endblock extra_js %}

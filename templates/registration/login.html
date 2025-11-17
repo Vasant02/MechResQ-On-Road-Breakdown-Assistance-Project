@@ -85,6 +85,9 @@
                                     <i class="fas fa-lock"></i>
                                 </span>
                                 <input type="password" name="password" class="form-control" id="password" required>
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -126,6 +129,21 @@
                 form.classList.add('was-validated');
             }, false);
         });
+
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                const icon = this.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                }
+                this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            });
+        }
     });
     </script>
 </body>

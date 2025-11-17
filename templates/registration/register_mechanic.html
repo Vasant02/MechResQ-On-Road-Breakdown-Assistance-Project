@@ -158,6 +158,9 @@
                                         <i class="fas fa-lock"></i>
                                     </span>
                                     <input type="password" name="password1" class="form-control" id="password1" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword1" aria-label="Show password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -167,6 +170,9 @@
                                         <i class="fas fa-lock"></i>
                                     </span>
                                     <input type="password" name="password2" class="form-control" id="password2" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword2" aria-label="Show password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -324,6 +330,26 @@
 
         password1.addEventListener('change', validatePassword);
         password2.addEventListener('change', validatePassword);
+
+        // Password visibility toggles
+        function setupToggle(btnId, inputId) {
+            const btn = document.getElementById(btnId);
+            const input = document.getElementById(inputId);
+            if (!btn || !input) return;
+            btn.addEventListener('click', function() {
+                const isPassword = input.getAttribute('type') === 'password';
+                input.setAttribute('type', isPassword ? 'text' : 'password');
+                const icon = this.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                }
+                this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            });
+        }
+
+        setupToggle('togglePassword1', 'password1');
+        setupToggle('togglePassword2', 'password2');
     });
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>

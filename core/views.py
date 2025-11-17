@@ -139,16 +139,24 @@ def password_reset_request(request):
     return render(request, 'registration/password_reset.html', {'form': form})
 
 def otp_verify(request):
+    """Verify the OTP sent for password reset before allowing new password set."""
+    # If the user hits this URL without an OTP/email in the session, restart the flow
+    if not request.session.get('otp') or not request.session.get('email'):
+        messages.error(request, "Password reset session has expired. Please request a new OTP.")
+        return redirect('core:password_reset')
+
     if request.method == 'POST':
         form = OtpForm(request.POST)
         if form.is_valid():
             otp_entered = form.cleaned_data['otp']
             if otp_entered == request.session.get('otp'):
+                messages.success(request, "OTP verified successfully. Please set your new password.")
                 return redirect('core:password_reset_new_password')
             else:
-                messages.error(request, "Invalid OTP.")
+                messages.error(request, "Invalid OTP. Please check the code and try again.")
     else:
         form = OtpForm()
+
     return render(request, 'registration/otp_verify.html', {'form': form})
 
 def password_reset_new_password(request):
@@ -158,6 +166,10 @@ def password_reset_new_password(request):
             new_password = form.cleaned_data['new_password']
             email = request.session.get('email')
             try:
+                if not email:
+                    messages.error(request, "Password reset session has expired or is invalid. Please request a new OTP.")
+                    return redirect('core:password_reset')
+
                 user = User.objects.filter(email=email).first()
                 if not user:
                     messages.error(request, "User not found for password reset. Please restart the process.")
@@ -168,7 +180,7 @@ def password_reset_new_password(request):
                 # Clear session data
                 del request.session['otp']
                 del request.session['email']
-                messages.success(request, "Password has been reset successfully.")
+                messages.success(request, f"Password for user '{user.username}' has been reset successfully.")
                 return redirect('core:login')
             except User.DoesNotExist:
                 messages.error(request, "An error occurred.")
@@ -478,32 +490,15 @@ def service_request_detail(request, pk):
                 service_request.mechanic_latitude = mechanic.latitude
                 service_request.mechanic_longitude = mechanic.longitude
                 service_request.save()
-                Notification.create_status_update_notification(
-                    recipient=service_request.user,
-                    service_request=service_request
-                )
                 messages.success(request, 'Request Accepted Successfully — You have accepted the service request. Contact the user to confirm details.')
             
             elif action == 'start' and service_request.status == 'ACCEPTED':
                 service_request.status = 'IN_PROGRESS'
                 service_request.save()
-                Notification.create_status_update_notification(
-                    recipient=service_request.user,
-                    service_request=service_request
-                )
                 messages.success(request, 'Heading to User’s Location — You’re now marked as en route to the user’s location.')
             
             elif action == 'complete' and service_request.status == 'IN_PROGRESS':
                 service_request.mark_as_completed()  # This method will create the payment
-                Notification.create_status_update_notification(
-                    recipient=service_request.user,
-                    service_request=service_request
-                )
-                # Create payment notification
-                Notification.create_payment_notification(
-                    recipient=service_request.user,
-                    payment=service_request.payment
-                )
                 messages.success(request, 'Service Completed Successfully — You have marked this service as completed.')
             
             return redirect('core:service_request_detail', pk=service_request.pk)
@@ -579,7 +574,6 @@ def submit_review(request, service_request_id):
             mechanic.rating = round(avg_rating, 2) if avg_rating else 0
             mechanic.save()
             Notification.create_feedback_submitted_notification(request.user)
-            Notification.create_review_notification(recipient=mechanic.user, review=review)
             Notification.create_rating_updated_notification(mechanic)
             
             messages.success(request, 'Thank you! Your review has been submitted successfully.')
@@ -605,6 +599,11 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 @login_required
 def find_nearby_mechanics(request, service_request_id):
     service_request = get_object_or_404(ServiceRequest, pk=service_request_id)
+
+    if not (request.user == service_request.user or 
+            (hasattr(request.user, 'mechanic') and service_request.mechanic == request.user.mechanic)):
+        messages.error(request, 'You do not have permission to view nearby mechanics for this service request.')
+        return redirect('core:dashboard')
 
     # Ensure service request has valid coordinates
     if service_request.latitude is None or service_request.longitude is None:
@@ -1139,8 +1138,9 @@ def service_payment(request, service_id):
         payment.tax = tax
         payment.total_amount = total_amount
         payment.payment_method = payment_method
-        payment.mechanic_share = service_charge * Decimal('0.80')  # 80% to mechanic
-        payment.platform_fee = service_charge * Decimal('0.20')    # 20% platform fee
+        mechanic_share = service_request.calculate_mechanic_share(service_charge)
+        payment.mechanic_share = mechanic_share
+        payment.platform_fee = service_charge - mechanic_share
 
         if payment_method == 'CASH':
             payment.payment_status = 'PENDING'
@@ -1267,8 +1267,9 @@ def payment_gateway(request, service_id):
         payment.tax = tax
         payment.total_amount = total_amount
         payment.payment_method = payment_method
-        payment.mechanic_share = service_charge * Decimal('0.80')
-        payment.platform_fee = service_charge * Decimal('0.20')
+        mechanic_share = service_request.calculate_mechanic_share(service_charge)
+        payment.mechanic_share = mechanic_share
+        payment.platform_fee = service_charge - mechanic_share
         payment.payment_status = 'PENDING' # Always set to pending initially for cash flow
         payment.save()
         
@@ -1314,8 +1315,9 @@ def process_payment(request, service_id):
     payment.tax = tax
     payment.total_amount = total_amount
     payment.payment_method = payment_method
-    payment.mechanic_share = service_charge * Decimal('0.80')  # 80% to mechanic
-    payment.platform_fee = service_charge * Decimal('0.20')    # 20% platform fee
+    mechanic_share = service_request.calculate_mechanic_share(service_charge)
+    payment.mechanic_share = mechanic_share
+    payment.platform_fee = service_charge - mechanic_share
     
     # For demonstration, we'll generate a random transaction ID
     import random
@@ -1396,6 +1398,9 @@ def assign_mechanic(request, service_request_id, mechanic_id):
 def accept_emergency_request(request, emergency_request_id):
     if request.method == 'POST':
         try:
+            if not request.user.is_mechanic:
+                return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+
             emergency_request = get_object_or_404(EmergencyRequest, pk=emergency_request_id)
             mechanic = get_object_or_404(Mechanic, user=request.user)
 
@@ -1525,6 +1530,18 @@ from .models import LocationHistory
 @login_required
 def get_location_history(request, mechanic_id):
     mechanic = get_object_or_404(Mechanic, pk=mechanic_id)
+
+    if request.user.is_mechanic:
+        try:
+            if request.user.mechanic != mechanic:
+                return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+        except Mechanic.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+    else:
+        has_relation = ServiceRequest.objects.filter(user=request.user, mechanic=mechanic).exists()
+        if not has_relation:
+            return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+
     location_history = LocationHistory.objects.filter(mechanic=mechanic).order_by('-timestamp')
     data = {
         'success': True,
