@@ -1,24 +1,24 @@
 /* Global Theme Variables */
 :root {
     /* Colors */
-    --primary-color: #8bc34a; /* Light Green */
-    --primary-color-rgb: 139, 195, 74; /* RGB for primary color */
-    --secondary-color: #4CAF50; /* Darker Green */
-    --accent-color: #689f38; /* Darker Green for highlights */
+    --primary-color: #78c357; /* Soft light green */
+    --primary-color-rgb: 120, 195, 87; /* RGB for primary color */
+    --secondary-color: #5aa245; /* Supporting green accents */
+    --accent-color: #4b8a33; /* Deeper green for hover states */
     --success-color: #4caf50; /* Green for success states */
-    --success-dark-shade: #388e3c; /* Darker green for gradients */
+    --success-dark-shade: #2e7d32; /* Darker green for gradients */
     --warning-color: #ffeb3b; /* Yellow for warning states */
     --warning-dark-shade: #fbc02d; /* Darker yellow for gradients */
     --danger-color: #f44336; /* Red for danger states */
     --danger-color-rgb: 244, 67, 54; /* RGB for danger color */
-    --background-dark: #1A361A; /* Very dark green background */
-    --background-medium: #2E4F2E; /* Medium dark green background */
-    --background-light: #426942; /* Light dark green background */
-    --text-light: #e0e0e0; /* Light text for dark background */
-    --text-dark: #b0b0b0; /* Medium light text for secondary text */
-    --border-color: #5A7D5A; /* Dark green border */
-    --shadow-dark: rgba(0, 0, 0, 0.5); /* Darker shadow for dark background */
-    --shadow-light: rgba(255, 255, 255, 0.1); /* Lighter shadow for dark background */
+    --background-dark: #f6f9f4; /* Soft white base */
+    --background-medium: #ffffff; /* Card / surface */
+    --background-light: #edf6e9; /* Subtle green tint */
+    --text-light: #1f2a1c; /* Primary body text */
+    --text-dark: #5c6b59; /* Muted / secondary text */
+    --border-color: #d5e6cf; /* Soft green border */
+    --shadow-dark: rgba(31, 42, 28, 0.12); /* Gentle drop shadow */
+    --shadow-light: rgba(255, 255, 255, 0.7); /* Highlight shadow */
 
     /* Typography */
     --font-family-sans-serif: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -121,12 +121,14 @@ a:hover {
 
 /* Secondary Button */
 .btn-secondary {
-    background-color: var(--background-medium); /* Darker background for secondary */
-    color: var(--text-light); /* Light text */
+    background-color: var(--background-light); /* Subtle tinted chip */
+    color: var(--text-light); /* Dark text */
+    border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-    background-color: var(--background-light); /* Lighter gray on hover */
+    background-color: var(--background-medium); /* Crisper white */
+    color: var(--primary-color);
 }
 
 /* Danger Button */
@@ -141,19 +143,18 @@ a:hover {
 
 /* Input Field Styles */
 .form-control {
-    background-color: var(--background-medium); /* Darker background for form control */
-    color: var(--text-light); /* Light text */
+    background-color: var(--background-medium); /* Clean surface */
+    color: var(--text-light); /* Dark text */
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     padding: var(--spacing-sm);
     transition: all var(--transition-speed) var(--transition-timing);
-    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light); /* Adjusted for dark neumorphic */
+    box-shadow: inset 0 1px 2px rgba(31, 42, 28, 0.08);
 }
-
 .form-control:focus {
-    background-color: var(--background-light); /* Lighter gray on focus */
+    background-color: var(--background-light); /* Gentle tint */
     border-color: var(--primary-color); /* Light green border */
-    box-shadow: 0 0 0 0.2rem rgba(139, 195, 74, 0.25); /* Light green shadow */
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25); /* Light green shadow */
 }
 
 /* Responsive adjustments for global styles */
