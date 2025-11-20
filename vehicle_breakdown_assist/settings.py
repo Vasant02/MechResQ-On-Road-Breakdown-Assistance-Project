@@ -154,8 +154,8 @@ EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 EMAIL_SSL_KEYFILE = None
 EMAIL_SSL_CERTFILE = None
-EMAIL_HOST_USER = env('EMAIL_HOST_USER') # Keep env for sensitive info
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD') # Keep env for sensitive info
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='noreply@mechresq.com')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@mechresq.com')
 
 # Django-allauth settings
@@ -178,19 +178,19 @@ MESSAGE_TAGS = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY')
-GEMINI_API_KEY = env('GEMINI_API_KEY')
-GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-1.5-flash')
+OPENROUTER_API_KEY = env('OPENROUTER_API_KEY')
+CHATBOT_MODEL = env('CHATBOT_MODEL', default='google/gemini-pro')
 BASE_URL = env('BASE_URL', default='http://localhost:8000') # New: Base URL for absolute links in emails
 
 # Firebase Configuration (add your Firebase project's config here)
 # These should be loaded from environment variables for security
 FIREBASE_CONFIG = {
-    "apiKey": env('FIREBASE_API_KEY'),
-    "authDomain": env('FIREBASE_AUTH_DOMAIN'),
-    "projectId": env('FIREBASE_PROJECT_ID'),
-    "storageBucket": env('FIREBASE_STORAGE_BUCKET'),
-    "messagingSenderId": env('FIREBASE_MESSAGING_SENDER_ID'),
-    "appId": env('FIREBASE_APP_ID'),
+    "apiKey": env('FIREBASE_API_KEY', default=''),
+    "authDomain": env('FIREBASE_AUTH_DOMAIN', default=''),
+    "projectId": env('FIREBASE_PROJECT_ID', default=''),
+    "storageBucket": env('FIREBASE_STORAGE_BUCKET', default=''),
+    "messagingSenderId": env('FIREBASE_MESSAGING_SENDER_ID', default=''),
+    "appId": env('FIREBASE_APP_ID', default=''),
     "measurementId": env('FIREBASE_MEASUREMENT_ID', default=None), # Optional
     "databaseURL": env('FIREBASE_DATABASE_URL', default=None), # For Realtime Database
 }
