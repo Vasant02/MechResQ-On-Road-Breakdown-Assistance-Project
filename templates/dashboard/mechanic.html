@@ -122,32 +122,6 @@
 
                 <div class="service-requests mt-4">
                     <div class="request-header">
-                        <h3 class="chart-title">Emergency Requests</h3>
-                    </div>
-                    <div class="request-list">
-                        {% for emergency_request in emergency_requests|slice:":5" %}
-                        <div class="request-item">
-                            <div class="request-info">
-                                <div class="request-details">
-                                    <h4>Emergency from {{ emergency_request.user.username }}</h4>
-                                    <p>Location: {{ emergency_request.latitude }}, {{ emergency_request.longitude }}</p>
-                                    <p>Status: {{ emergency_request.status }}</p>
-                                </div>
-                                {% if emergency_request.status == 'PENDING' %}
-                                <button class="btn btn-sm btn-danger" onclick="acceptEmergencyRequest('{{ emergency_request.id }}')">Accept SOS</button>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="text-center py-4" style="color: var(--text-dark);">
-                            No emergency requests
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="service-requests mt-4">
-                    <div class="request-header">
                         <h3 class="chart-title">Cash Payments to Confirm</h3>
                     </div>
                     <div class="request-list">
@@ -268,7 +242,6 @@
                         },
                         y: {
                             ticks: {
-                                maxTicksLimit: 5,
                                 padding: 10,
                                 color: '#64748b',
                                 font: {
@@ -276,8 +249,11 @@
                                     family: "'Inter', sans-serif",
                                     weight: '500'
                                 },
+                                stepSize: 1, // Ensure integer steps
                                 callback: function(value) {
-                                    return value + ' services';
+                                    if (Number.isInteger(value)) {
+                                        return value + ' services';
+                                    }
                                 }
                             },
                             grid: {

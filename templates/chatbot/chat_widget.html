@@ -189,7 +189,7 @@
     </div>
     <div class="chat-body" id="chatBody">
         <!-- Chat messages will be appended here -->
-        <div class="chat-message ai">Hi! Ask about your service requests, mechanics, or payments.</div>
+        <div class="chat-message ai">Hi! How can I assist you?</div>
     </div>
     <div class="chat-input-area">
         <button class="attachment-button" id="attachmentButton">➕</button>
@@ -268,7 +268,8 @@
                     });
                 })
                 .catch(() => {
-                    appendMessage('Unable to load previous messages.', 'ai');
+                    // User requested to remove this message.
+                    // If history fails to load, the chat widget will simply be empty initially.
                 });
         }
 
@@ -374,7 +375,7 @@
             // Display a loading indicator or "typing..." message
             const loadingMessage = document.createElement('div');
             loadingMessage.classList.add('chat-message', 'ai');
-            loadingMessage.textContent = 'Typing…';
+            loadingMessage.textContent = 'Assisting…';
             loadingMessage.id = 'loadingMessage';
             chatBody.appendChild(loadingMessage);
             chatBody.scrollTop = chatBody.scrollHeight;

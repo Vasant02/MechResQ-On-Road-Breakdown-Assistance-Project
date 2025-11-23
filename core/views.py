@@ -7,12 +7,12 @@ from django.contrib import messages
 from django.db.models import Q, Avg, Sum, Count
 from django.db.models.functions import TruncDay
 from decimal import Decimal
-from .models import User, Mechanic, ServiceRequest, Review, Payment, Notification, Vehicle, EmergencyRequest
+from .models import User, Mechanic, ServiceRequest, Review, Payment, Notification, Vehicle
 from django.contrib.auth.forms import UserCreationForm
 from django import forms
 from math import radians, sin, cos, sqrt, atan2
 from .notification_views import get_unread_notifications_count
-from .forms import ReviewForm, UserProfileForm, MechanicProfileForm # Add UserProfileForm, MechanicProfileForm
+from .forms import ReviewForm, UserProfileForm, MechanicProfileForm, UserRegistrationForm, MechanicRegistrationForm # Add UserProfileForm, MechanicProfileForm, UserRegistrationForm, MechanicRegistrationForm
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse # Added HttpResponse
 import json
@@ -33,6 +33,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse # Import reverse for URL lookups
 import io
 from xhtml2pdf import pisa
+
 def send_payment_receipt_email(payment):
     service_request = payment.service_request
     receipt_url = settings.BASE_URL + reverse('core:payment_receipt', args=[payment.id]) # Assuming BASE_URL is set in settings
@@ -194,76 +195,8 @@ def notification_context_processor(request):
         return {'unread_notifications_count': get_unread_notifications_count(request.user)}
     return {'unread_notifications_count': 0}
 
-@login_required
-@csrf_exempt
-def create_emergency_request(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            latitude = data.get('latitude')
-            longitude = data.get('longitude')
-
-            if not latitude or not longitude:
-                return JsonResponse({'success': False, 'error': 'Location data missing.'}, status=400)
-
-            # Create the emergency request
-            emergency_request = EmergencyRequest.objects.create(
-                user=request.user,
-                latitude=latitude,
-                longitude=longitude,
-                status='PENDING'
-            )
-
-            # Find nearby mechanics (within a certain radius, e.g., 50 km)
-            nearby_mechanics = []
-            all_mechanics = Mechanic.objects.filter(available=True)
-            user_location = (latitude, longitude)
-
-            for mechanic in all_mechanics:
-                if mechanic.latitude and mechanic.longitude:
-                    mechanic_location = (mechanic.latitude, mechanic.longitude)
-                    distance = geodesic(user_location, mechanic_location).km
-                    if distance <= 50:  # 50 km radius
-                        nearby_mechanics.append(mechanic)
-                        
-                        # Create notification for nearby mechanic
-                        Notification.objects.create(
-                            recipient=mechanic.user,
-                            notification_type='EMERGENCY',
-                            title=f"New Emergency Request from {request.user.username}",
-                            message=f"An emergency request has been placed at {latitude}, {longitude}. Distance: {round(distance, 2)} km."
-                        )
-            
-            if not nearby_mechanics:
-                # Notify user if no mechanics are found
-                Notification.objects.create(
-                    recipient=request.user,
-                    notification_type='STATUS_UPDATE',
-                    title="Emergency Request Received",
-                    message="Your emergency request has been received, but no nearby mechanics are currently available. We are expanding our search."
-                )
-                return JsonResponse({'success': True, 'message': 'Emergency request created. No nearby mechanics found yet.'})
-
-            return JsonResponse({'success': True, 'message': 'Emergency request created and nearby mechanics notified.'})
-
-        except json.JSONDecodeError:
-            return JsonResponse({'success': False, 'error': 'Invalid JSON.'}, status=400)
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
-    return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
-
-class UserRegistrationForm(UserCreationForm):
-    phone_number = forms.CharField(max_length=17)
-    address = forms.CharField(widget=forms.Textarea)
-
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'phone_number', 'address', 'password1', 'password2']
-
-class MechanicRegistrationForm(forms.ModelForm):
-    class Meta:
-        model = Mechanic
-        fields = ['specialization', 'experience_years', 'workshop_address', 'latitude', 'longitude']
+# The actual registration forms are now imported from forms.py
+# Removed the old UserRegistrationForm and MechanicRegistrationForm definitions here.
 
 from .forms import ServiceRequestForm as CoreServiceRequestForm # Rename to avoid conflict
 
@@ -273,11 +206,12 @@ class ServiceRequestForm(CoreServiceRequestForm): # Use the form from forms.py
 
 def register_user(request):
     if request.method == 'POST':
-        form = UserRegistrationForm(request.POST)
+        form = UserRegistrationForm(request.POST, request.FILES) # Add request.FILES
         if form.is_valid():
             user = form.save(commit=False)
-            user.phone_number = form.cleaned_data['phone_number']
-            user.address = form.cleaned_data['address']
+            # The UserRegistrationForm now handles these fields directly from Meta.fields
+            # user.phone_number = form.cleaned_data['phone_number']
+            # user.address = form.cleaned_data['address']
             user.save()
             Notification.create_welcome_notification(user)
             messages.success(request, 'Registration successful! Please login to continue.')
@@ -292,13 +226,32 @@ def register_user(request):
 
 def register_mechanic(request):
     if request.method == 'POST':
-        user_form = UserRegistrationForm(request.POST)
-        mechanic_form = MechanicRegistrationForm(request.POST)
+        # Split POST data for User and Mechanic parts
+        user_data = {
+            'username': request.POST.get('username'),
+            'email': request.POST.get('email'),
+            'phone_number': request.POST.get('phone_number'),
+            'address': request.POST.get('address'),
+            'password': request.POST.get('password'),
+            'password2': request.POST.get('confirm_password'), # UserCreationForm expects password2
+            'id_proof_type': request.POST.get('mechanic_id_proof_type'),
+            'id_proof_number': request.POST.get('mechanic_id_proof_number'),
+        }
+        # Files need to be handled separately for the User part if any
+        user_files = {}
+        if 'mechanic_id_proof_image' in request.FILES:
+            user_files['id_proof_image'] = request.FILES['mechanic_id_proof_image']
+
+        user_form = UserRegistrationForm(user_data, user_files) # Pass user_files to UserRegistrationForm
+        mechanic_form = MechanicRegistrationForm(request.POST, request.FILES) # Mechanic form handles its own fields and files
+
         if user_form.is_valid() and mechanic_form.is_valid():
             user = user_form.save(commit=False)
             user.is_mechanic = True
+            user.set_password(user_form.cleaned_data['password']) # Set password from user_form
             user.save()
             Notification.create_welcome_notification(user)
+
             mechanic = mechanic_form.save(commit=False)
             mechanic.user = user
             mechanic.save()
@@ -329,19 +282,44 @@ def create_service_request(request):
         if form.is_valid():
             service_request = form.save(commit=False)
             service_request.user = request.user
+
+            # If a mechanic is already assigned or found, use their coordinates for initial estimation
+            # For simplicity, if no mechanic is assigned yet, we might defer full cost calculation
+            # or use a default mechanic location. For now, let's assume a mechanic needs to be found
+            # and assigned (even temporarily for estimation) or the cost will be base only.
             
-            # Calculate estimated cost
-            mechanic = Mechanic.objects.filter(available=True).first() # Find an available mechanic
-            if mechanic:
-                base_fee = mechanic.base_fee
-                issue_length = len(service_request.issue_description.split())
-                estimated_cost = base_fee + (issue_length * 2) # Add Rs.2 for each word in the issue description
-                service_request.estimated_cost = estimated_cost
+            # To calculate estimated cost based on distance, we need a mechanic's location.
+            # For a new request, we don't have an assigned mechanic yet.
+            # The full calculation of distance_km and problem_complexity_fee happens within calculate_service_charge
+            # when it has both user and mechanic coordinates.
+            # For initial creation, we can calculate a base estimated cost.
             
-            service_request.save()
+            # For initial estimated_cost, we can calculate it with the base problem complexity fee,
+            # and the distance component will be 0 until a mechanic is assigned.
+            # The save method will trigger the calculate_service_charge, which will update distance_km and problem_complexity_fee.
+            # We need to make sure latitude and longitude are set before calling calculate_service_charge if possible.
+            # The current form already collects latitude and longitude for the service request.
+            
+            service_request.save() # Save the request with initial data, including user's location
+
+            # Calculate estimated cost based on problem description and base fee (distance will be 0 initially)
+            calculated_cost = service_request.calculate_service_charge()
+            service_request.estimated_cost = calculated_cost
+            service_request.save() # Save again to persist estimated_cost and problem_complexity_fee
+
             Notification.create_service_request_notification(recipient=request.user, service_request=service_request)
             messages.success(request, 'Request Created Successfully — Your service request has been created successfully.')
-            messages.info(request, f'Estimated Cost — The estimated cost is Rs.{service_request.estimated_cost}.')
+            
+            # Display estimated cost breakdown more clearly
+            distance_fee_display = Decimal('0.00')
+            if service_request.distance_km is not None and service_request.distance_km > 10:
+                distance_fee_display = Decimal(str(max(0, service_request.distance_km - 10) * 10))
+
+            messages.info(request, (
+                f'Estimated Cost — The estimated cost is Rs.{service_request.estimated_cost}. '
+                f'This includes a base fee of Rs.500.00 and a problem complexity fee of Rs.{service_request.problem_complexity_fee}. '
+                f'The distance fee will be calculated once a mechanic accepts your request.'
+            ))
             return redirect('core:service_request_detail', pk=service_request.pk)
     else:
         form = ServiceRequestForm()
@@ -370,10 +348,6 @@ def dashboard(request):
         average_rating = Review.objects.filter(service_request__mechanic=mechanic).aggregate(Avg('rating'))['rating__avg'] or 0
         pending_requests_count = ServiceRequest.objects.filter(mechanic__isnull=True, status='PENDING').count()
         
-        # Get emergency requests for the mechanic
-        emergency_requests = EmergencyRequest.objects.filter(
-            Q(mechanic=mechanic) | Q(mechanic__isnull=True, status='PENDING')
-        ).order_by('-created_at')
 
         # Get last 30 days service trend
         today = timezone.now()
@@ -412,7 +386,6 @@ def dashboard(request):
         context = {
             'mechanic': mechanic,
             'service_requests': service_requests,
-            'emergency_requests': emergency_requests,
             'cash_payment_requests': cash_payment_requests,
             'total_services': total_services,
             'completed_services': completed_services,
@@ -439,7 +412,6 @@ def dashboard(request):
         return render(request, 'dashboard/mechanic.html', context)
     else:
         service_requests = ServiceRequest.objects.filter(user=request.user).order_by('-created_at')
-        emergency_requests = EmergencyRequest.objects.filter(user=request.user).order_by('-created_at')
 
         # Find an active service request for the user that has an assigned mechanic
         active_tracking_request = ServiceRequest.objects.filter(
@@ -450,7 +422,6 @@ def dashboard(request):
 
         context = {
             'service_requests': service_requests,
-            'emergency_requests': emergency_requests,
             'active_page': 'dashboard',
             'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY, # Pass API key to user dashboard
         }
@@ -489,8 +460,18 @@ def service_request_detail(request, pk):
                 # Set mechanic's current location to service request
                 service_request.mechanic_latitude = mechanic.latitude
                 service_request.mechanic_longitude = mechanic.longitude
+                
+                # Recalculate estimated cost with actual mechanic location
+                calculated_cost = service_request.calculate_service_charge()
+                service_request.estimated_cost = calculated_cost
+                
                 service_request.save()
                 messages.success(request, 'Request Accepted Successfully — You have accepted the service request. Contact the user to confirm details.')
+                messages.info(request, (
+                    f'Updated Estimated Cost — The estimated cost is now Rs.{service_request.estimated_cost}. '
+                    f'This includes a distance fee of Rs.{(service_request.distance_km - 10) * 10 if service_request.distance_km and service_request.distance_km > 10 else 0} (for {service_request.distance_km:.2f} km) '
+                    f'and a problem complexity fee of Rs.{service_request.problem_complexity_fee}.'
+                ))
             
             elif action == 'start' and service_request.status == 'ACCEPTED':
                 service_request.status = 'IN_PROGRESS'
@@ -1449,38 +1430,6 @@ def assign_mechanic(request, service_request_id, mechanic_id):
     )
     messages.success(request, f'Mechanic {mechanic.user.get_full_name()} has been notified about your service request. They will review it shortly.')
     return redirect('core:service_request_detail', pk=service_request.id) # Redirect back to service request detail page
-
-
-@login_required
-@csrf_exempt
-def accept_emergency_request(request, emergency_request_id):
-    if request.method == 'POST':
-        try:
-            if not request.user.is_mechanic:
-                return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
-
-            emergency_request = get_object_or_404(EmergencyRequest, pk=emergency_request_id)
-            mechanic = get_object_or_404(Mechanic, user=request.user)
-
-            if emergency_request.status != 'PENDING':
-                return JsonResponse({'success': False, 'error': 'Emergency request is not pending.'}, status=400)
-
-            emergency_request.mechanic = mechanic
-            emergency_request.status = 'DISPATCHED'
-            emergency_request.save()
-
-            # Notify the user that a mechanic has accepted their request
-            Notification.objects.create(
-                recipient=emergency_request.user,
-                notification_type='STATUS_UPDATE',
-                title=f"Emergency Request Accepted by {mechanic.user.username}",
-                message=f"Mechanic {mechanic.user.username} is on their way to your emergency location."
-            )
-
-            return JsonResponse({'success': True, 'message': 'Emergency request accepted.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
-    return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
 
 
 @login_required

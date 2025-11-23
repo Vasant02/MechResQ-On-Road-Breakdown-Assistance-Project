@@ -4,6 +4,7 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from decimal import Decimal
 from django.conf import settings # Import settings
+from geopy.distance import geodesic # Import geodesic for distance calculation
 
 # Define language choices based on settings.LANGUAGES
 LANGUAGE_CHOICES = settings.LANGUAGES
@@ -14,7 +15,6 @@ class Notification(models.Model):
         ('STATUS_UPDATE', 'Status Update'),
         ('PAYMENT', 'Payment'),
         ('REVIEW', 'Review'),
-        ('EMERGENCY', 'Emergency'), # New notification type
     ]
 
     recipient = models.ForeignKey('User', on_delete=models.CASCADE, related_name='notifications')
@@ -224,9 +224,19 @@ class User(AbstractUser):
         null=True, 
         blank=True
     )
+    ID_PROOF_CHOICES = [
+        ('AADHAR', 'Aadhar Card'),
+        ('DL', 'Driver\'s License'),
+        ('ID_CARD', 'Other ID Card'),
+    ]
+    
     fcm_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="FCM Token for Push Notifications")
     preferred_language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, default='en') # New field
     
+    id_proof_type = models.CharField(max_length=20, choices=ID_PROOF_CHOICES, blank=True, null=True)
+    id_proof_number = models.CharField(max_length=50, blank=True, null=True)
+    id_proof_image = models.ImageField(upload_to='id_proofs/', null=True, blank=True)
+
     def get_profile_picture_url(self):
         if self.profile_picture and hasattr(self.profile_picture, 'url'):
             return self.profile_picture.url
@@ -235,12 +245,21 @@ class User(AbstractUser):
         return '/static/images/User.png'
 
 class Mechanic(models.Model):
+    ID_PROOF_CHOICES = [
+        ('AADHAR', 'Aadhar Card'),
+        ('DL', 'Driver\'s License'),
+        ('ID_CARD', 'Other ID Card'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     specialization = models.CharField(max_length=100)
     experience_years = models.IntegerField()
     workshop_address = models.TextField()
     available = models.BooleanField(default=True)
     latitude = models.FloatField(null=True, blank=True)
+    mechanic_id_proof_type = models.CharField(max_length=20, choices=ID_PROOF_CHOICES, blank=True, null=True)
+    mechanic_id_proof_number = models.CharField(max_length=50, blank=True, null=True)
+    mechanic_id_proof_image = models.ImageField(upload_to='mechanic_id_proofs/', null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     rating = models.FloatField(default=0.0)
     base_fee = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)
@@ -276,6 +295,8 @@ class ServiceRequest(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    distance_km = models.FloatField(null=True, blank=True, help_text="Calculated distance between user and mechanic in kilometers")
+    problem_complexity_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Fee based on problem description complexity")
     estimated_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     final_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     notes = models.TextField(blank=True)
@@ -316,11 +337,39 @@ class ServiceRequest(models.Model):
             self.save()
 
     def calculate_service_charge(self):
-        # Base charge calculation logic
-        base_charge = 500  # Minimum service charge
-        if self.issue_description and len(self.issue_description.split()) > 50:
-            base_charge += 200  # Additional charge for complex issues
-        return Decimal(base_charge)
+        base_charge = Decimal('500.00')  # Minimum service charge
+
+        # 1. Distance-based pricing
+        distance_fee = Decimal('0.00')
+        # Only calculate distance if both user and mechanic locations are available
+        if all([self.latitude, self.longitude, self.mechanic_latitude, self.mechanic_longitude]):
+            user_location = (self.latitude, self.longitude)
+            mechanic_location = (self.mechanic_latitude, self.mechanic_longitude)
+            distance = geodesic(user_location, mechanic_location).km
+            self.distance_km = round(distance, 2) # Store calculated distance
+            if distance > 10: # Example: charge for distances over 10 km
+                distance_fee = Decimal(str(max(0, distance - 10) * 10)) # 10 Rs per km after 10 km
+        else:
+            self.distance_km = 0.0 # No mechanic assigned or location missing, so distance is 0
+
+        # 2. Problem description-based pricing (simplified for demonstration)
+        problem_fee = Decimal('0.00')
+        if self.issue_description:
+            description_length = len(self.issue_description.split())
+            if description_length > 50:
+                problem_fee = Decimal('200.00') # More complex issue
+            elif description_length > 20:
+                problem_fee = Decimal('100.00') # Moderately complex issue
+            
+            # Example: keyword-based complexity
+            keywords = ['engine failure', 'transmission', 'major repair', 'electrical fault']
+            if any(keyword in self.issue_description.lower() for keyword in keywords):
+                problem_fee += Decimal('300.00') # Additional charge for specific keywords
+        
+        self.problem_complexity_fee = problem_fee # Store calculated problem fee
+
+        total_charge = base_charge + distance_fee + problem_fee
+        return total_charge
 
     def calculate_tax(self, amount):
         # 18% GST
@@ -421,26 +470,6 @@ class Vehicle(models.Model):
     @property
     def last_service(self):
         return self.service_requests.filter(status='COMPLETED').order_by('-created_at').first()
-
-class EmergencyRequest(models.Model):
-    STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('DISPATCHED', 'Dispatched'),
-        ('RESOLVED', 'Resolved'),
-        ('CANCELLED', 'Cancelled'),
-    ]
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='emergency_requests')
-    mechanic = models.ForeignKey(Mechanic, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_emergency_requests')
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
-    created_at = models.DateTimeField(auto_now_add=True)
-    resolved_at = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f"Emergency Request by {self.user.username} at {self.created_at.strftime('%Y-%m-%d %H:%M')}"
-
 
 class LocationHistory(models.Model):
     mechanic = models.ForeignKey(Mechanic, on_delete=models.CASCADE)

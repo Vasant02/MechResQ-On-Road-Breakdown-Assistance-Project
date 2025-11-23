@@ -147,30 +147,67 @@
                             <input type="hidden" name="latitude" id="latitude">
                             <input type="hidden" name="longitude" id="longitude">
 
+                            <!-- ID Proof -->
+                            <div class="col-12 mt-4">
+                                <h5 class="mb-3" style="color: var(--primary-color);"><i class="fas fa-id-card me-2"></i>ID Proof</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mechanic_id_proof_type" class="form-label">ID Proof Type</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-id-card"></i>
+                                    </span>
+                                    <select name="mechanic_id_proof_type" class="form-select" id="mechanic_id_proof_type">
+                                        <option value="">Choose...</option>
+                                        <option value="AADHAR">Aadhar Card</option>
+                                        <option value="DL">Driver's License</option>
+                                        <option value="ID_CARD">Other ID Card</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mechanic_id_proof_number" class="form-label">ID Proof Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-hashtag"></i>
+                                    </span>
+                                    <input type="text" name="mechanic_id_proof_number" class="form-control" id="mechanic_id_proof_number">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label for="mechanic_id_proof_image" class="form-label">Upload ID Proof Photo</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-camera"></i>
+                                    </span>
+                                    <input type="file" name="mechanic_id_proof_image" class="form-control" id="mechanic_id_proof_image" accept="image/*">
+                                </div>
+                            </div>
+
                             <!-- Password -->
                             <div class="col-12 mt-4">
                                 <h5 class="mb-3" style="color: var(--primary-color);"><i class="fas fa-lock me-2"></i>Security</h5>
                             </div>
                             <div class="col-md-6">
-                                <label for="password1" class="form-label">Password</label>
+                                <label for="password" class="form-label">Password</label>
                                 <div class="input-group">
                                     <span class="input-group-text">
                                         <i class="fas fa-lock"></i>
                                     </span>
-                                    <input type="password" name="password1" class="form-control" id="password1" required>
-                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword1" aria-label="Show password">
+                                    <input type="password" name="password" class="form-control" id="password" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="password2" class="form-label">Confirm Password</label>
+                                <label for="confirm_password" class="form-label">Confirm Password</label>
                                 <div class="input-group">
                                     <span class="input-group-text">
                                         <i class="fas fa-lock"></i>
                                     </span>
-                                    <input type="password" name="password2" class="form-control" id="password2" required>
-                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword2" aria-label="Show password">
+                                    <input type="password" name="confirm_password" class="form-control" id="confirm_password" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Show password">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>

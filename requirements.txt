@@ -10,7 +10,6 @@ geopy==2.4.1
 stripe==7.6.0
 crispy-bootstrap4==2025.6
 googlemaps==4.10.0
-openai
 python-dotenv
-httpx
 xhtml2pdf==0.2.15
+google-generativeai

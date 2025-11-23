@@ -178,8 +178,12 @@ MESSAGE_TAGS = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY')
+
+# Gemini API Configuration
 GEMINI_API_KEY = env('GEMINI_API_KEY')
-GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-1.5-flash')
+GEMINI_API_URL = env('GEMINI_API_URL', default='https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent')
+GEMINI_MODEL = env('GEMINI_MODEL', default='models/gemini-1.5-flash')
+
 BASE_URL = env('BASE_URL', default='http://localhost:8000') # New: Base URL for absolute links in emails
 
 # Firebase Configuration (add your Firebase project's config here)
